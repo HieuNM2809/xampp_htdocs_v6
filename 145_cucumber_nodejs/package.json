@@ -1,0 +1,24 @@
+{
+  "name": "cucumber-nodejs-example",
+  "version": "1.0.0",
+  "description": "Ví dụ BDD testing với Cucumber.js và Node.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "cucumber-js",
+    "test:calculator": "cucumber-js features/calculator.feature",
+    "test:cart": "cucumber-js features/shopping_cart.feature",
+    "test:report": "cucumber-js --format html:cucumber-report.html"
+  },
+  "keywords": [
+    "cucumber",
+    "bdd",
+    "gherkin",
+    "testing",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@cucumber/cucumber": "^11.2.0"
+  }
+}
