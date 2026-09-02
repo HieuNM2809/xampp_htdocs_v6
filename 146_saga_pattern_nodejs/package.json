@@ -1,0 +1,30 @@
+{
+  "name": "saga-pattern-nodejs-example",
+  "version": "1.0.0",
+  "description": "Ví dụ Saga Pattern (Orchestration + Choreography) bằng Node.js thuần",
+  "type": "commonjs",
+  "main": "src/demo/run.js",
+  "scripts": {
+    "demo": "node src/demo/run.js",
+    "demo:list": "node src/demo/run.js --list",
+    "demo:success": "node src/demo/run.js success",
+    "demo:rollback": "node src/demo/run.js rollback",
+    "demo:retry": "node src/demo/run.js retry",
+    "demo:pivot": "node src/demo/run.js pivot",
+    "demo:comp-fail": "node src/demo/run.js comp-fail",
+    "demo:idempotency": "node src/demo/run.js idempotency",
+    "demo:choreography": "node src/demo/run.js chore-success chore-rollback chore-duplicate"
+  },
+  "keywords": [
+    "saga",
+    "saga-pattern",
+    "microservices",
+    "distributed-transaction",
+    "compensating-transaction",
+    "orchestration",
+    "choreography",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT"
+}
