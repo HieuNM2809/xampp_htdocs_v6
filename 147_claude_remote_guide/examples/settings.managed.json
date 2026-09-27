@@ -1,0 +1,8 @@
+{
+  "disableRemoteControl": true,
+  "crossSessionInbound": "refuse",
+  "isolatePeerMachines": true,
+  "permissions": {
+    "deny": ["SendMessage", "ListAgents"]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "remoteControlAtStartup": true,
+  "dialogExpiry": "never",
+  "crossSessionInbound": "accept",
+  "env": {
+    "CLAUDE_CLIENT_PRESENCE_FILE": "C:\\Users\\CHANGE_ME\\.claude\\presence.marker",
+    "CLAUDE_REMOTE_CONTROL_SESSION_NAME_PREFIX": "dev01"
+  }
+}

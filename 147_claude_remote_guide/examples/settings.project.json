@@ -1,0 +1,5 @@
+{
+  "remoteControlAtStartup": false,
+  "isolatePeerMachines": true,
+  "crossSessionInbound": "hold"
+}
