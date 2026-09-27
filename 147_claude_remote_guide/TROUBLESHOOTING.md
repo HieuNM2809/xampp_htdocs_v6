@@ -203,10 +203,11 @@ với `--session-id`, `--spawn`, `--capacity`, `--create-session-in-dir`.
 
 ### Bật lại rồi nhưng session không còn trong danh sách
 
-Claude Code **archive session âm thầm** trong hai tình huống, không phải lỗi:
+Khi bạn gõ `/remote-control` để **nối lại sau một lần kết nối rớt**, Claude Code
+**archive session cũ âm thầm** trong hai tình huống, không phải lỗi:
 
-- Bạn nối lại sau khi **compaction đã viết lại hội thoại**.
-- Bạn nối lại sau khi đã `/resume` sang hội thoại khác ở giữa.
+- Ở giữa, **compaction đã viết lại hội thoại**.
+- Ở giữa, bạn đã `/resume` sang hội thoại khác.
 
 Tìm nó bằng bộ lọc **archived** trong danh sách session ở claude.ai/code. Đổi hội
 thoại trong lúc thiết bị **vẫn đang kết nối** thì không bị archive.

@@ -519,7 +519,7 @@ Cách bật lại **phụ thuộc vào cách bạn đã tắt**. Tra bảng này
 | Thoát Claude Desktop / VS Code | Session offline | Mở lại hội thoại: Claude Code **gắn lại vào đúng session claude.ai cũ**, không đẻ thêm dòng mới trong danh sách |
 | Kết thúc / archive từ điện thoại | Session rời khỏi danh sách | `/remote-control` — nó mở lại cả session đã archive |
 | Máy ngủ, rớt wifi chốc lát | Không tính là tắt | Không cần làm gì, tự reconnect khi máy tỉnh |
-| Tắt máy, khởi động lại máy | Tiến trình chết hẳn | Như dòng tương ứng ở trên, nhưng **đồng hồ 4 giờ vẫn chạy** trong lúc máy tắt |
+| Tắt máy, khởi động lại máy | Tiến trình chết hẳn | Như dòng tương ứng ở trên. Nhớ là cửa sổ 4 giờ tính **từ lúc server dừng**, không phải từ lúc bạn mở máy lại |
 
 ### 10.5. Cửa sổ 4 giờ và hai điều kiện dễ quên
 
@@ -555,10 +555,12 @@ Hội thoại quay lại, nhưng **không phải thứ gì cũng quay lại**:
 | Thay đổi file đã ghi ra đĩa | Có — chúng nằm trên filesystem, không nằm trong session |
 | Tên session | Có, nếu bạn đặt bằng `--name` / `/rename` |
 
-Hai trường hợp session bị **archive âm thầm** lúc nối lại, làm bạn tưởng nó biến mất:
+Ngoài ra, khi bạn **gõ `/remote-control` để nối lại sau một lần kết nối rớt**,
+session cũ có thể bị **archive âm thầm** làm bạn tưởng nó biến mất. Hai tình
+huống gây ra điều này:
 
-- Nối lại sau khi **compaction đã viết lại hội thoại**.
-- Nối lại sau khi bạn đã `/resume` sang hội thoại khác ở giữa.
+- Ở giữa, **compaction đã viết lại hội thoại**.
+- Ở giữa, bạn đã `/resume` sang hội thoại khác.
 
 Cả hai đều khiến Claude Code archive session server cũ thay vì để lại trong danh
 sách. Tìm nó bằng bộ lọc **archived** ở claude.ai/code. Ngược lại, đổi hội thoại
