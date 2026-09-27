@@ -201,6 +201,17 @@ Riêng `--continue`: nếu thư mục hiện tại không có bản ghi nào, Cl
 ghi mới nhất từ **git worktree khác của cùng repo**. Nó cũng **không dùng chung**
 với `--session-id`, `--spawn`, `--capacity`, `--create-session-in-dir`.
 
+**Hạn 4 giờ chỉ áp dụng cho server mode.** Session mở bằng `claude --remote-control`
+hoặc `/remote-control` không có hạn giờ nào trong docs — cứ `claude --continue` /
+`claude --resume` là Claude Code nối lại RC session ghi trong hội thoại đó. Nếu
+nối lại thất bại thì xem hai mục ở trên (`Couldn't reconnect...` và
+`Previous session is unavailable`).
+
+Đừng nhầm 4 giờ với: **~10 phút** (server mode mất mạng → tiến trình thoát, chạy
+lại là session mới), **~30 phút** (mất heartbeat ở session tương tác → gõ
+`/remote-control` nối lại), **18 giờ** (tuổi đăng nhập của Trusted Devices, không
+liên quan tới session).
+
 ### Bật lại rồi nhưng session không còn trong danh sách
 
 Khi bạn gõ `/remote-control` để **nối lại sau một lần kết nối rớt**, Claude Code

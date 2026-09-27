@@ -77,9 +77,20 @@ claude --resume --fork-session            # resume nhưng tạo session ID mới
 | Thoát Desktop / VS Code | Mở lại hội thoại, tự gắn vào session claude.ai cũ |
 | Archive từ điện thoại | `/remote-control` (mở lại cả bản đã archive) |
 
+**Bao lâu thì phải tạo mới**: `~4 giờ` chỉ áp dụng cho **server mode**. Session
+tương tác (`--remote-control` / `/remote-control`) **không có hạn giờ nào trong
+docs** — cứ `claude --continue` / `--resume`. Nút disconnect cũng không có hạn.
+
 Không lấy lại được khi: quá 4 giờ · sai thư mục · ở giữa đã chạy
 `claude remote-control` khác trong cùng thư mục · đã khởi động server với
 `--no-create-session-in-dir`.
+
+| Mốc dễ nhầm với 4 giờ | Là gì | Sau đó |
+| --- | --- | --- |
+| ~10 phút | Server mode mất mạng, tiến trình thoát | Chạy lại = **session mới** |
+| ~30 phút | Mất heartbeat ở session tương tác | `/remote-control` để **nối lại** |
+| 5 phút | `dialogExpiry` của hộp thoại chuyển tiếp | Hộp thoại đóng, đi theo mặc định |
+| 18 giờ | Tuổi đăng nhập trong Trusted Devices | Face ID / Windows Hello / passkey |
 
 Bật lại **không** khôi phục: subagent, workflow, lệnh shell đang chạy dở.
 Session bị archive âm thầm nếu nối lại sau khi compaction viết lại hội thoại

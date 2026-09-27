@@ -521,7 +521,33 @@ Cách bật lại **phụ thuộc vào cách bạn đã tắt**. Tra bảng này
 | Máy ngủ, rớt wifi chốc lát | Không tính là tắt | Không cần làm gì, tự reconnect khi máy tỉnh |
 | Tắt máy, khởi động lại máy | Tiến trình chết hẳn | Như dòng tương ứng ở trên. Nhớ là cửa sổ 4 giờ tính **từ lúc server dừng**, không phải từ lúc bạn mở máy lại |
 
-### 10.5. Cửa sổ 4 giờ và hai điều kiện dễ quên
+### 10.5. Bao lâu thì phải tạo session mới
+
+Câu hỏi hay gặp nhất: *tắt Remote Control rồi, bao lâu nữa thì không gọi lại
+được nữa?* Đáp án ngắn là **~4 giờ**, nhưng con số đó **chỉ áp dụng cho server
+mode**. Tắt kiểu khác thì không có hạn giờ nào cả:
+
+| Bạn tắt kiểu nào | Hạn để gọi lại session cũ |
+| --- | --- |
+| `Ctrl+C` ở `claude remote-control` (server mode) | **~4 giờ** kể từ lúc server dừng. Quá hạn thì `claude remote-control` chỉ tạo session mới, lịch sử cũ không theo về |
+| Đóng terminal có `claude --remote-control` / `/remote-control` | **Docs không nêu hạn giờ nào.** Gọi lại bằng `claude --continue` / `claude --resume` — Claude Code tự nối lại đúng RC session ghi trong hội thoại đó |
+| Bấm nút disconnect trong bảng `/remote-control` | Không có hạn — session local chưa hề tắt, gõ `/remote-control` là nối lại |
+
+Ba mốc thời gian khác **rất dễ nhầm** với con số 4 giờ, nhớ để khỏi lẫn:
+
+| Mốc | Là cái gì | Sau đó phải làm gì |
+| --- | --- | --- |
+| **~10 phút** | Server mode mất mạng kéo dài, tiến trình `claude remote-control` tự thoát | Docs nói chạy lại là **tạo session mới** |
+| **~30 phút** | Session tương tác mất presence heartbeat, hiện `could not reach the Remote Control server for about 30 minutes` | Gõ `/remote-control` để **nối lại**, không phải tạo mới |
+| **18 giờ** | Tuổi tối đa của lần đăng nhập trong [Trusted Devices](#143-trusted-devices-beta) | Xác nhận Face ID / Touch ID / Windows Hello / passkey. **Không liên quan tới tuổi thọ session** |
+
+Hai mốc nữa thuộc chuyện khác nhưng hay bị gộp vào cùng câu hỏi: `dialogExpiry`
+**5 phút** là hạn chờ của hộp thoại chuyển tiếp ra thiết bị ([§6.4](#64-prompt-xin-quyền-khi-bạn-ở-xa)),
+còn VM của **cloud session** bị thu hồi sau một thời gian không hoạt động —
+docs không nêu con số, và mở lại thì có luôn VM mới kèm lịch sử hội thoại
+([§11.6](#116-giới-hạn-cần-biết-trước)).
+
+#### Cửa sổ 4 giờ và hai điều kiện dễ quên
 
 Ba lệnh lấy lại session của server mode ở [§9.3](#93-lấy-lại-session-sau-khi-tắt-server)
 chỉ chạy được khi đủ **cả hai**:
