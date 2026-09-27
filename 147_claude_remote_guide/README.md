@@ -29,7 +29,7 @@ bài đều lấy từ `claude --help` và `claude remote-control --help` của 
 7. [Thiết bị từ xa thấy gì, gõ được lệnh gì](#7-thiết-bị-từ-xa-thấy-gì-gõ-được-lệnh-gì)
 8. [Bật mặc định cho mọi session](#8-bật-mặc-định-cho-mọi-session)
 9. [Server mode: nhiều session song song](#9-server-mode-nhiều-session-song-song)
-10. [Giữ session sống: Windows, SSH, tmux](#10-giữ-session-sống-windows-ssh-tmux)
+10. [Vòng đời session: giữ sống, tắt, bật lại](#10-vòng-đời-session-giữ-sống-tắt-bật-lại)
 11. [Nâng cao — Cloud session: `--cloud` và `--teleport`](#11-nâng-cao--cloud-session---cloud-và---teleport)
 12. [Nâng cao — Nhắn tin giữa các session](#12-nâng-cao--nhắn-tin-giữa-các-session)
 13. [Nâng cao — Channels: đẩy Telegram/Discord/CI vào session](#13-nâng-cao--channels-đẩy-telegramdiscordci-vào-session)
@@ -445,6 +445,9 @@ server mode), cách lấy lại là `claude --continue` / `claude --resume` như
 > Control: Claude Code in `Remote Control not started here` và **không giành**
 > session. Gõ `/remote-control` ở terminal thứ hai nếu muốn chuyển sang đó.
 
+Điều kiện đầy đủ, thứ gì mất khi bật lại, và các bẫy hay dính: xem
+[§10.4–10.7](#104-tắt-kiểu-nào-thì-bật-lại-kiểu-ấy).
+
 ### 9.4. Session bị crash trong server mode
 
 Không cần restart server. Cứ nhắn cho session đó từ thiết bị đang kết nối, Claude
@@ -452,10 +455,14 @@ Code phục vụ lại nó (cần v2.1.238+).
 
 ---
 
-## 10. Giữ session sống: Windows, SSH, tmux
+## 10. Vòng đời session: giữ sống, tắt, bật lại
 
 Remote Control **là tiến trình local**. Đóng terminal, thoát Desktop/VS Code, hay
 tắt máy → session offline ngay. Đây là giới hạn kiến trúc, không phải bug.
+
+Phần 10.1–10.3 nói về cách **giữ session sống**. Phần 10.4–10.7 nói về chuyện
+xảy ra khi bạn **tắt rồi bật lại** — chỗ này nhiều bẫy nhất, đọc kỹ trước khi
+tắt cái gì.
 
 ### 10.1. Trên máy remote qua SSH (Linux/macOS)
 
@@ -499,6 +506,84 @@ với tham số đầy đủ.
 Laptop sleep hoặc rớt wifi chốc lát thì Claude Code tự reconnect khi máy tỉnh.
 Hai thông báo đáng nhớ: gặp HTTP 403 (hay xảy ra sau khi đổi VPN) nó thử lại
 trong 3 phút rồi mới ngắt; mất heartbeat ~30 phút thì gõ `/remote-control` để nối lại.
+
+### 10.4. Tắt kiểu nào thì bật lại kiểu ấy
+
+Cách bật lại **phụ thuộc vào cách bạn đã tắt**. Tra bảng này trước khi gõ gì:
+
+| Bạn tắt bằng cách | Chuyện gì xảy ra | Bật lại bằng |
+| --- | --- | --- |
+| `Ctrl+C` ở **server mode** | Session ngừng trả lời từ điện thoại nhưng **không bị archive** | `claude remote-control` trong **đúng thư mục cũ**, trong ~4 giờ (§9.3) |
+| Đóng terminal có `claude --remote-control` | Session offline | `claude --continue` hoặc `claude --resume` — Claude Code tự nối lại đúng RC session ghi trong hội thoại đó |
+| `/remote-control` → **nút disconnect** | Chỉ ngắt Remote Control, **session local vẫn chạy bình thường** | `/remote-control` |
+| Thoát Claude Desktop / VS Code | Session offline | Mở lại hội thoại: Claude Code **gắn lại vào đúng session claude.ai cũ**, không đẻ thêm dòng mới trong danh sách |
+| Kết thúc / archive từ điện thoại | Session rời khỏi danh sách | `/remote-control` — nó mở lại cả session đã archive |
+| Máy ngủ, rớt wifi chốc lát | Không tính là tắt | Không cần làm gì, tự reconnect khi máy tỉnh |
+| Tắt máy, khởi động lại máy | Tiến trình chết hẳn | Như dòng tương ứng ở trên, nhưng **đồng hồ 4 giờ vẫn chạy** trong lúc máy tắt |
+
+### 10.5. Cửa sổ 4 giờ và hai điều kiện dễ quên
+
+Ba lệnh lấy lại session của server mode ở [§9.3](#93-lấy-lại-session-sau-khi-tắt-server)
+chỉ chạy được khi đủ **cả hai**:
+
+1. **Đúng thư mục** đã chạy server trước đó. Riêng `--continue`: nếu thư mục này
+   không có bản ghi nào, Claude Code lấy bản ghi mới nhất từ **git worktree khác
+   của cùng repo**.
+2. **Trong khoảng 4 giờ** kể từ lúc server dừng. Quá hạn thì `claude remote-control`
+   chỉ tạo session mới — lịch sử cũ không theo về.
+
+Hai trường hợp **không lấy lại được**, dù còn trong 4 giờ:
+
+- Ở giữa đã có một `claude remote-control` khác chạy trong cùng thư mục.
+- Bạn khởi động server với `--no-create-session-in-dir` → Claude Code **archive
+  toàn bộ session của server ngay khi bạn dừng nó**, nên không còn gì để gọi lại.
+
+Từ v2.1.228, `--continue` và `--session-id` còn **bỏ archive** giúp bạn nếu lỡ
+archive session ở giữa. Nhớ là `--continue` và `--session-id` **không dùng chung**
+với nhau, và cũng không dùng chung với `--spawn`, `--capacity`,
+`--create-session-in-dir`.
+
+### 10.6. Bật lại xong thì mất những gì
+
+Hội thoại quay lại, nhưng **không phải thứ gì cũng quay lại**:
+
+| Thứ | Có sống sót không |
+| --- | --- |
+| Lịch sử hội thoại | Có |
+| Subagent, workflow, lệnh shell đang chạy dở | **Không** — chết theo tiến trình, kết quả dở dang mất |
+| Việc chạy nền của **cloud session** sau khi VM bị thu hồi | **Không** — mở lại có lịch sử hội thoại, nhưng subagent và lệnh shell không được khôi phục |
+| Thay đổi file đã ghi ra đĩa | Có — chúng nằm trên filesystem, không nằm trong session |
+| Tên session | Có, nếu bạn đặt bằng `--name` / `/rename` |
+
+Hai trường hợp session bị **archive âm thầm** lúc nối lại, làm bạn tưởng nó biến mất:
+
+- Nối lại sau khi **compaction đã viết lại hội thoại**.
+- Nối lại sau khi bạn đã `/resume` sang hội thoại khác ở giữa.
+
+Cả hai đều khiến Claude Code archive session server cũ thay vì để lại trong danh
+sách. Tìm nó bằng bộ lọc **archived** ở claude.ai/code. Ngược lại, đổi hội thoại
+trong lúc thiết bị **vẫn đang kết nối** thì không bị archive.
+
+### 10.7. Năm cái bẫy khi bật lại
+
+1. **Sai thứ tự sau `Previous session is unavailable`.** Gõ `/remote-control`
+   ngay mà chưa khởi động lại Claude Code → **tin nhắn cũ của hội thoại không
+   được đưa vào session mới**. Khởi động lại Claude Code trước, rồi mới bật.
+2. **Terminal thứ hai không giành session.** Resume hội thoại ở terminal khác
+   trong khi terminal đầu vẫn giữ Remote Control → in `Remote Control not started
+   here` và để RC ở nguyên chỗ cũ. Muốn chuyển sang terminal mới thì gõ
+   `/remote-control` ở đó.
+3. **Session crash trong server mode: đừng restart server.** Chỉ cần nhắn cho nó
+   từ thiết bị đang kết nối, server phục vụ lại (v2.1.238+).
+4. **`--resume` chỉ đọc lịch sử của máy này.** Sang máy khác thì không có gì để
+   resume — dùng `--teleport` nếu đó là session cloud, còn không thì bắt đầu
+   session mới.
+5. **Muốn thử lại mà không đụng session gốc**: thêm `--fork-session` khi resume,
+   nó tạo session ID mới thay vì dùng lại ID cũ.
+
+```bash
+claude --resume --fork-session
+```
 
 ---
 

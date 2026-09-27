@@ -197,6 +197,44 @@ Không lấy lại được nếu: đã quá 4 giờ, đã có một `claude rem
 trong cùng thư mục, hoặc bạn đã khởi động với `--no-create-session-in-dir` (trường
 hợp này Claude Code archive session ngay khi dừng server).
 
+Riêng `--continue`: nếu thư mục hiện tại không có bản ghi nào, Claude Code lấy bản
+ghi mới nhất từ **git worktree khác của cùng repo**. Nó cũng **không dùng chung**
+với `--session-id`, `--spawn`, `--capacity`, `--create-session-in-dir`.
+
+### Bật lại rồi nhưng session không còn trong danh sách
+
+Claude Code **archive session âm thầm** trong hai tình huống, không phải lỗi:
+
+- Bạn nối lại sau khi **compaction đã viết lại hội thoại**.
+- Bạn nối lại sau khi đã `/resume` sang hội thoại khác ở giữa.
+
+Tìm nó bằng bộ lọc **archived** trong danh sách session ở claude.ai/code. Đổi hội
+thoại trong lúc thiết bị **vẫn đang kết nối** thì không bị archive.
+
+### Bật lại rồi nhưng mất hết việc đang chạy dở
+
+Đúng như thiết kế. Hội thoại quay lại, nhưng **subagent, workflow và lệnh shell
+đang chạy thì chết theo tiến trình** và không được khôi phục — kể cả với cloud
+session sau khi VM bị thu hồi. Thay đổi đã ghi ra file thì vẫn còn, vì chúng nằm
+trên đĩa chứ không nằm trong session.
+
+Muốn việc dài hơi sống sót: chạy nó trong `tmux`/`screen` (xem README §10.1) thay
+vì để nó chết cùng terminal.
+
+### Resume ở máy khác không thấy session cũ
+
+`--resume` chỉ đọc **lịch sử local của máy này**, không liệt kê session cloud và
+không với sang máy khác. Với session cloud thì dùng `claude --teleport`. Với
+session local trên máy khác thì không có cách mang hội thoại đi — bắt đầu session
+mới ở đó.
+
+Muốn resume mà không đụng vào session gốc, thêm `--fork-session`: nó tạo session
+ID mới thay vì dùng lại ID cũ.
+
+```bash
+claude --resume --fork-session
+```
+
 ---
 
 ## 3. Không nhận được thông báo đẩy

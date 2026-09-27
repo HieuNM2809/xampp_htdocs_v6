@@ -55,16 +55,38 @@ claude remote-control --name "Hasaki API" --spawn worktree --capacity 4 --permis
 | `w` | Chuyển qua lại `same-dir` ⇄ `worktree` |
 | `Ctrl+C` | Dừng server (session giữ lại ~4 giờ) |
 
-### Lấy lại session sau khi tắt server (trong ~4 giờ, cùng thư mục)
+### Tắt rồi bật lại
 
 ```bash
+# server mode: trong ~4 giờ, phải ở ĐÚNG thư mục cũ
 claude remote-control                     # tất cả session server đang phục vụ
 claude remote-control --continue          # chỉ session khởi đầu
 claude remote-control --session-id <id>   # đúng một session
+
+# session tương tác (--remote-control / /remote-control)
+claude --continue                         # tự nối lại RC ghi trong hội thoại
+claude --resume                           # chọn hội thoại rồi nối lại
+claude --resume --fork-session            # resume nhưng tạo session ID mới
 ```
 
-Session mở bằng `--remote-control` / `/remote-control` thì dùng
-`claude --continue` hoặc `claude --resume`.
+| Tắt kiểu | Bật lại kiểu |
+| --- | --- |
+| `Ctrl+C` ở server mode | `claude remote-control` (cùng thư mục, ~4 giờ) |
+| Đóng terminal tương tác | `claude --continue` / `claude --resume` |
+| Nút disconnect của `/remote-control` | `/remote-control` (session local chưa hề tắt) |
+| Thoát Desktop / VS Code | Mở lại hội thoại, tự gắn vào session claude.ai cũ |
+| Archive từ điện thoại | `/remote-control` (mở lại cả bản đã archive) |
+
+Không lấy lại được khi: quá 4 giờ · sai thư mục · ở giữa đã chạy
+`claude remote-control` khác trong cùng thư mục · đã khởi động server với
+`--no-create-session-in-dir`.
+
+Bật lại **không** khôi phục: subagent, workflow, lệnh shell đang chạy dở.
+Session bị archive âm thầm nếu nối lại sau khi compaction viết lại hội thoại
+hoặc sau khi bạn `/resume` sang hội thoại khác — tìm bằng bộ lọc **archived**.
+
+Sau `Previous session is unavailable`: **khởi động lại Claude Code trước**, gõ
+`/remote-control` ngay thì tin nhắn cũ không được đưa vào session mới.
 
 ### Lệnh liên quan
 
