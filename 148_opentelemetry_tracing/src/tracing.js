@@ -89,13 +89,20 @@ const sdk = new NodeSDK({
 
 sdk.start();
 
-const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318';
+// OTEL_EXPORTER_OTLP_TRACES_ENDPOINT (URL đầy đủ, exporter dùng nguyên) được ưu tiên hơn
+// OTEL_EXPORTER_OTLP_ENDPOINT (URL gốc, exporter tự nối thêm /v1/traces).
+const endpoint =
+  process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT || process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318';
 console.log(`[otel] tracing đã bật: service=${serviceName} export=${endpoint}`);
 
 // Tắt êm: flush các span còn nằm trong buffer của BatchSpanProcessor trước khi thoát.
 let shuttingDown = false;
 async function shutdown(signal) {
-  if (shuttingDown) return;
+  if (shuttingDown) {
+    // Bấm Ctrl+C lần nữa trong lúc đang flush: thoát ngay, chấp nhận mất lô span cuối.
+    console.error(`[otel] ${signal} lần 2: thoát ngay, không chờ flush`);
+    process.exit(signal === 'SIGTERM' ? 143 : 130); // quy ước 128 + số hiệu signal
+  }
   shuttingDown = true;
   try {
     await sdk.shutdown();

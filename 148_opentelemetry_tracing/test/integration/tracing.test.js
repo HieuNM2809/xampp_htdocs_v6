@@ -77,6 +77,33 @@ test('OTEL_SDK_DISABLED=true: không vá module nào, không báo "tracing đã 
   assert.doesNotMatch(stdout, /tracing đã bật/);
 });
 
+test('dòng khởi động in đúng endpoint exporter dùng: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT được ưu tiên', async () => {
+  const { stdout } = await execFileAsync(process.execPath, ['--require', './src/tracing.js', '-e', '0'], {
+    cwd: ROOT,
+    env: {
+      ...process.env,
+      OTEL_SERVICE_NAME: 'endpoint-test',
+      OTEL_EXPORTER_OTLP_ENDPOINT: 'http://localhost:4318',
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: 'http://127.0.0.1:1/custom/v1/traces',
+    },
+    timeout: 30000,
+  });
+  assert.match(stdout, /export=http:\/\/127\.0\.0\.1:1\/custom\/v1\/traces/, stdout);
+});
+
+test('Ctrl+C lần 2 trong lúc đang tắt: thoát ngay với mã 130, không bị bỏ qua', async () => {
+  const failure = await execFileAsync(
+    process.execPath,
+    ['--require', './src/tracing.js', 'test/integration/fixtures/double-sigint.js'],
+    { cwd: ROOT, env: { ...process.env, OTEL_SERVICE_NAME: 'sigint-test' }, timeout: 30000 }
+  ).then(
+    () => null,
+    (err) => err
+  );
+  assert.ok(failure, 'tiến trình phải thoát với mã khác 0');
+  assert.equal(failure.code, 130);
+});
+
 test('Collector không chạy: tiến trình vẫn chạy xong, không crash', async () => {
   const { traceId } = await emitSpan({
     OTEL_EXPORTER_OTLP_ENDPOINT: 'http://127.0.0.1:1', // cổng không có ai nghe
