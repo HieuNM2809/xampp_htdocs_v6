@@ -12,8 +12,11 @@ function customerTierOf(customerId) {
   return typeof customerId === 'string' && customerId.startsWith('VIP') ? 'gold' : 'standard';
 }
 
-/** @param {{ orderServiceUrl?: string }} [options] */
-function createApp({ orderServiceUrl = process.env.ORDER_SERVICE_URL || 'http://localhost:3001' } = {}) {
+/** @param {{ orderServiceUrl?: string, upstreamTimeoutMs?: number }} [options] */
+function createApp({
+  orderServiceUrl = process.env.ORDER_SERVICE_URL || 'http://localhost:3001',
+  upstreamTimeoutMs = 5000, // order-service treo quá lâu thì trả 503, không để client chờ mãi
+} = {}) {
   const app = express();
   app.use(express.json());
 
@@ -31,7 +34,7 @@ function createApp({ orderServiceUrl = process.env.ORDER_SERVICE_URL || 'http://
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify(req.body ?? {}),
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(upstreamTimeoutMs),
         })
       );
     } catch (err) {

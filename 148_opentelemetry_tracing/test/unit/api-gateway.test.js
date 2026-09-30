@@ -39,8 +39,8 @@ async function fakeOrderService(status, body) {
 }
 
 /** Bật gateway trên cổng ngẫu nhiên, gửi 1 request, tắt gateway. */
-async function callGateway(orderServiceUrl, { method = 'POST', path = '/orders', body, raw } = {}) {
-  const server = http.createServer(createApp({ orderServiceUrl }));
+async function callGateway(orderServiceUrl, { method = 'POST', path = '/orders', body, raw } = {}, appOptions = {}) {
+  const server = http.createServer(createApp({ orderServiceUrl, ...appOptions }));
   const base = await listen(server);
   try {
     const res = await fetch(`${base}${path}`, {
@@ -98,6 +98,20 @@ test('order-service không chạy -> 503 ORDER_SERVICE_UNAVAILABLE', async () =>
   // Lý do cụ thể (ECONNREFUSED, địa chỉ nội bộ) chỉ ghi vào log, không trả cho client.
   assert.doesNotMatch(res.body.message, /ECONNREFUSED|fetch failed|127\.0\.0\.1/);
   assert.ok(Date.now() - started < 6000, 'phải trả lời trong vòng timeout 5 giây');
+});
+
+test('order-service nhận request nhưng không trả lời -> 503 ngay khi hết timeout', async () => {
+  const hung = http.createServer(() => {}); // nhận request rồi im lặng, không bao giờ trả lời
+  const url = await listen(hung);
+  try {
+    const started = Date.now();
+    const res = await callGateway(url, { body: ORDER }, { upstreamTimeoutMs: 300 });
+    assert.equal(res.status, 503);
+    assert.equal(res.body.error, 'ORDER_SERVICE_UNAVAILABLE');
+    assert.ok(Date.now() - started < 2000, `phải trả lời ngay sau timeout 300 ms, mất ${Date.now() - started} ms`);
+  } finally {
+    await close(hung);
+  }
 });
 
 test('body JSON sai cú pháp -> 400 BAD_REQUEST, không gọi order-service', async () => {
