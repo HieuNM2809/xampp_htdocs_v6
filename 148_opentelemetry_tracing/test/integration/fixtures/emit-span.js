@@ -11,7 +11,11 @@ const span = trace.getTracer('integration-test').startSpan('smoke-span');
 span.end();
 console.log(`TRACE_ID=${span.spanContext().traceId}`);
 
-sdk
-  .shutdown()
-  .catch((err) => console.error(`[emit-span] export thất bại: ${err.message}`))
-  .finally(() => process.exit(0));
+// EMIT_SPAN_WAIT_MS: chờ thêm trước khi tắt, để BatchSpanProcessor tự gửi một lô như service thật.
+const waitMs = Number(process.env.EMIT_SPAN_WAIT_MS) || 0;
+setTimeout(() => {
+  sdk
+    .shutdown()
+    .catch((err) => console.error(`[emit-span] export thất bại: ${err.message}`))
+    .finally(() => process.exit(0));
+}, waitMs);

@@ -104,10 +104,16 @@ test('Ctrl+C lần 2 trong lúc đang tắt: thoát ngay với mã 130, không b
   assert.equal(failure.code, 130);
 });
 
-test('Collector không chạy: tiến trình vẫn chạy xong, không crash', async () => {
-  const { traceId } = await emitSpan({
+test('Collector không chạy: tiến trình không crash và SDK in cảnh báo export lỗi', async () => {
+  const { traceId, stderr } = await emitSpan({
     OTEL_EXPORTER_OTLP_ENDPOINT: 'http://127.0.0.1:1', // cổng không có ai nghe
-    OTEL_EXPORTER_OTLP_TIMEOUT: '2000',
+    OTEL_EXPORTER_OTLP_TIMEOUT: '1000',
+    OTEL_BSP_SCHEDULE_DELAY: '100', // gửi lô sớm, như một service chạy lâu
+    EMIT_SPAN_WAIT_MS: '3000',
   });
   assert.match(traceId, /^[0-9a-f]{32}$/);
+  // Dòng lỗi phải do chính SDK in ra lúc gửi lô (diag logger trong tracing.js), không phải dòng
+  // mà fixture tự in khi shutdown thất bại.
+  const sdkErrorLines = stderr.split('\n').filter((line) => line.includes('ECONNREFUSED') && !line.startsWith('[emit-span]'));
+  assert.ok(sdkErrorLines.length > 0, `SDK phải in lỗi ECONNREFUSED, stderr:\n${stderr}`);
 });
