@@ -242,13 +242,20 @@ const sdk = new NodeSDK({
 
 sdk.start();
 
-const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318';
+// OTEL_EXPORTER_OTLP_TRACES_ENDPOINT (URL đầy đủ, exporter dùng nguyên) được ưu tiên hơn
+// OTEL_EXPORTER_OTLP_ENDPOINT (URL gốc, exporter tự nối thêm /v1/traces).
+const endpoint =
+  process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT || process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318';
 console.log(`[otel] tracing đã bật: service=${serviceName} export=${endpoint}`);
 
 // Tắt êm: flush các span còn nằm trong buffer của BatchSpanProcessor trước khi thoát.
 let shuttingDown = false;
 async function shutdown(signal) {
-  if (shuttingDown) return;
+  if (shuttingDown) {
+    // Bấm Ctrl+C lần nữa trong lúc đang flush: thoát ngay, chấp nhận mất lô span cuối.
+    console.error(`[otel] ${signal} lần 2: thoát ngay, không chờ flush`);
+    process.exit(signal === 'SIGTERM' ? 143 : 130); // quy ước 128 + số hiệu signal
+  }
   shuttingDown = true;
   try {
     await sdk.shutdown();
@@ -320,8 +327,10 @@ node --experimental-loader=@opentelemetry/instrumentation/hook.mjs --import @ope
 Hai biến `OTEL_METRICS_EXPORTER=none` và `OTEL_LOGS_EXPORTER=none` tắt phần export metrics và logs mặc
 định. Bỏ chúng đi nếu backend nhận được cả hai loại dữ liệu này (xem "Chỉ bật tracing" bên dưới).
 
-Cách này nhanh nhất để thử, nhưng không cấu hình được từng instrumentation (`ignoreIncomingRequestHook`,
-tắt `router`...). Khi cần những thứ đó thì viết file như `src/tracing.js`.
+Cách này nhanh nhất để thử. Bật / tắt từng instrumentation vẫn làm được bằng biến môi trường, ví dụ
+`OTEL_NODE_DISABLED_INSTRUMENTATIONS=dns,net,router` (nên đặt khi dùng Express 5, xem mục 6). Nhưng không
+truyền được cấu hình chi tiết như hàm `ignoreIncomingRequestHook`. Khi cần những thứ đó thì viết file như
+`src/tracing.js`.
 
 ### Vì sao không đặt `require('./tracing')` ở dòng đầu app
 
@@ -339,6 +348,7 @@ Cách đó chạy được, nhưng rất dễ hỏng mà không ai hay:
 `BatchSpanProcessor` giữ span trong bộ nhớ và gửi theo lô khoảng 5 giây một lần. Tiến trình thoát ngang
 thì lô cuối mất. `tracing.js` bắt `SIGINT` / `SIGTERM`, gọi `sdk.shutdown()` để flush rồi mới
 `process.exit(0)`. Kubernetes gửi `SIGTERM` trước khi kill pod, nên đoạn này quan trọng trên production.
+Nếu flush chậm (ví dụ backend không phản hồi), bấm Ctrl+C lần nữa là thoát ngay với mã 130.
 
 ### Chỉ bật tracing
 
@@ -394,8 +404,8 @@ Cả 5 hằng số đều đã **stable** trong `@opentelemetry/semantic-convent
 package. Attribute còn ở mức incubating thì nên chép thành hằng số trong code, như
 [`src/shared/messaging.js`](src/shared/messaging.js), vì entry `/incubating` có thể đổi giữa các bản minor.
 
-Ngoài ra, detector của SDK tự thêm `host.*`, `process.*` và `telemetry.sdk.*`. Đây là resource thật của
-`order-service` mà Jaeger lưu (một số giá trị đã được che):
+Ngoài ra, detector của SDK tự thêm `host.*` và `process.*`, còn `telemetry.sdk.*` đến từ
+`defaultResource()`. Đây là resource thật của `order-service` mà Jaeger lưu (một số giá trị đã được che):
 
 ```
 deployment.environment.name      "development"
@@ -472,8 +482,11 @@ function customerTierOf(customerId) {
   return typeof customerId === 'string' && customerId.startsWith('VIP') ? 'gold' : 'standard';
 }
 
-/** @param {{ orderServiceUrl?: string }} [options] */
-function createApp({ orderServiceUrl = process.env.ORDER_SERVICE_URL || 'http://localhost:3001' } = {}) {
+/** @param {{ orderServiceUrl?: string, upstreamTimeoutMs?: number }} [options] */
+function createApp({
+  orderServiceUrl = process.env.ORDER_SERVICE_URL || 'http://localhost:3001',
+  upstreamTimeoutMs = 5000, // order-service treo quá lâu thì trả 503, không để client chờ mãi
+} = {}) {
   const app = express();
   app.use(express.json());
 
@@ -491,13 +504,16 @@ function createApp({ orderServiceUrl = process.env.ORDER_SERVICE_URL || 'http://
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify(req.body ?? {}),
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(upstreamTimeoutMs),
         })
       );
     } catch (err) {
+      // Lý do cụ thể (ECONNREFUSED, địa chỉ nội bộ) chỉ ghi vào log, không trả cho client.
       const reason = err.cause?.code ? `${err.message} (${err.cause.code})` : err.message;
       log.error('không gọi được order-service', { reason });
-      return res.status(503).json({ error: 'ORDER_SERVICE_UNAVAILABLE', message: reason, traceId });
+      return res
+        .status(503)
+        .json({ error: 'ORDER_SERVICE_UNAVAILABLE', message: 'order-service không phản hồi', traceId });
     }
     const body = await upstream.json().catch(() => ({}));
     log.info('đã chuyển tiếp đơn', { status: upstream.status, tier });
@@ -937,6 +953,12 @@ Cần nhớ:
 - Baggage đi dạng **plain text** trong header, tới mọi service phía sau, kể cả dịch vụ bên thứ ba nếu bạn
   gọi ra ngoài. Không đưa email, số điện thoại, token vào baggage.
 - Giữ baggage nhỏ: nó được gửi kèm **mọi** request phía sau.
+- **Đừng tin context do client gửi lên.** Service ở biên, tức nhận request thẳng từ Internet như gateway,
+  sẽ tự đọc `traceparent` và `baggage` trong request. Client vì vậy có thể ép lấy mẫu mọi request (qua
+  flags của `traceparent`), hoặc nhét baggage tuỳ ý đi xuyên cả hệ thống. Cách thường làm: xoá hai header
+  này ở load balancer / reverse proxy với request từ ngoài vào, hoặc ở gateway tạo baggage mới chỉ gồm các
+  key mình tự tính. Trong ví dụ, `customer.tier` luôn được gateway tính lại nên client không giả được,
+  nhưng `withBaggage` vẫn giữ các key khác mà client gửi kèm.
 
 ### Span cha hay span link
 
@@ -1240,8 +1262,8 @@ notification-worker                    └─ email.send         INTERNAL
 
 | Lệnh | Cần gì | Kiểm tra gì |
 |---|---|---|
-| `npm test` | Không cần Docker | 45 unit test: helper tracing, propagation, logger, order-service, api-gateway, worker, client Jaeger, service thoát với mã lỗi khi cổng bị chiếm |
-| `npm run test:integration` | `npm run infra:up` | `tracing.js` gửi được span qua Collector tới Jaeger với stderr sạch, resource đúng, biến môi trường ghi đè được, `OTEL_SDK_DISABLED` không vá module nào, Collector chết thì app không crash |
+| `npm test` | Không cần Docker | 49 unit test: helper tracing, propagation, logger, error middleware, order-service, api-gateway (cả nhánh timeout), worker, client Jaeger, service thoát với mã lỗi khi cổng bị chiếm |
+| `npm run test:integration` | `npm run infra:up` (cho 2 test đầu) | `tracing.js` gửi được span qua Collector tới Jaeger với stderr sạch, resource đúng, biến môi trường ghi đè được, `OTEL_SDK_DISABLED` không vá module nào, dòng khởi động in đúng endpoint, Ctrl+C lần 2 thoát ngay, Collector chết thì app không crash và SDK in cảnh báo |
 | `npm run verify` | `npm run infra:up` và `npm start` | 34 check end-to-end trên trace thật trong Jaeger |
 
 Unit test không gửi span đi đâu cả. [`test/helpers/otel.js`](test/helpers/otel.js) dựng OpenTelemetry
@@ -1356,6 +1378,10 @@ chạy nhiều Collector thì cần load balancing theo trace id.
   cuối.
 - **Dữ liệu nhạy cảm**: không ghi email, số điện thoại, token, số thẻ vào attribute, event hay baggage.
   Collector có processor `attributes` và `redaction` để xoá / che thêm một lớp.
+- **Không trả chi tiết lỗi nội bộ cho client**: lỗi 5xx chỉ trả thông báo chung kèm `traceId`
+  (xem `errorHandler` trong [`src/shared/http.js`](src/shared/http.js)); người vận hành tra `traceId` trong
+  Jaeger để xem exception đầy đủ.
+- **Context từ bên ngoài**: xoá hoặc tính lại `traceparent` / `baggage` của request từ Internet (mục 8).
 - **Thông tin máy trong resource**: detector `host` và `process` gửi kèm tên máy, user, đường dẫn và tham
   số dòng lệnh (xem mục 5). Chỉ bật detector cần thiết bằng `OTEL_NODE_RESOURCE_DETECTORS`, ví dụ
   `env,host`.
