@@ -23,6 +23,15 @@ test('log bên trong span có trace_id và span_id của span đó', async () =>
   assert.ok(lines[0].endsWith(`trace_id=${ids.traceId} span_id=${ids.spanId}`), lines[0]);
 });
 
+test('xuống dòng trong giá trị được escape, một lần log luôn là một dòng', () => {
+  const lines = [];
+  const log = createLogger('unit-svc', (line) => lines.push(line));
+  log.warn('request lỗi', { reason: 'dòng 1\ndòng 2\r\nINFO giả mạo' });
+  assert.equal(lines.length, 1);
+  assert.ok(!/[\r\n]/.test(lines[0]), lines[0]);
+  assert.ok(lines[0].endsWith('reason=dòng 1\\ndòng 2\\r\\nINFO giả mạo'), lines[0]);
+});
+
 test('log ngoài span không có trace_id; field undefined bị bỏ; object in dạng JSON', () => {
   const lines = [];
   const log = createLogger('unit-svc', (line) => lines.push(line));

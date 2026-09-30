@@ -35,9 +35,12 @@ function createApp({ orderServiceUrl = process.env.ORDER_SERVICE_URL || 'http://
         })
       );
     } catch (err) {
+      // Lý do cụ thể (ECONNREFUSED, địa chỉ nội bộ) chỉ ghi vào log, không trả cho client.
       const reason = err.cause?.code ? `${err.message} (${err.cause.code})` : err.message;
       log.error('không gọi được order-service', { reason });
-      return res.status(503).json({ error: 'ORDER_SERVICE_UNAVAILABLE', message: reason, traceId });
+      return res
+        .status(503)
+        .json({ error: 'ORDER_SERVICE_UNAVAILABLE', message: 'order-service không phản hồi', traceId });
     }
     const body = await upstream.json().catch(() => ({}));
     log.info('đã chuyển tiếp đơn', { status: upstream.status, tier });

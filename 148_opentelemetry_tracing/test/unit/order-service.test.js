@@ -155,10 +155,18 @@ test('body JSON sai cú pháp -> 400 BAD_REQUEST (không phải 500)', async () 
   assert.equal(res.body.error, 'BAD_REQUEST');
 });
 
-test('Redis lỗi -> 500 INTERNAL_ERROR, span send order-events ERROR', async () => {
+test('body quá lớn (> 100kb) -> 413 PAYLOAD_TOO_LARGE, không bị gán nhầm BAD_REQUEST', async () => {
+  const res = await request(createApp({ redis: fakeRedis() }), { raw: JSON.stringify({ customerId: 'x'.repeat(150000) }) });
+  assert.equal(res.status, 413);
+  assert.equal(res.body.error, 'PAYLOAD_TOO_LARGE');
+});
+
+test('Redis lỗi -> 500 INTERNAL_ERROR không lộ chi tiết nội bộ, span send order-events ERROR', async () => {
   const res = await request(createApp({ redis: fakeRedis({ fail: true }) }), { body: VALID_ORDER });
   assert.equal(res.status, 500);
   assert.equal(res.body.error, 'INTERNAL_ERROR');
+  // Chi tiết lỗi (host, cổng, thông báo của thư viện) chỉ nằm trong log và span, không trả cho client.
+  assert.doesNotMatch(res.body.message, /Connection is closed/);
   const producer = findSpan('send order-events');
   assert.equal(producer.status.code, SpanStatusCode.ERROR);
   assert.equal(producer.status.message, 'Connection is closed.');

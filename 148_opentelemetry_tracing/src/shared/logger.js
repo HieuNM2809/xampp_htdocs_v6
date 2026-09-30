@@ -9,10 +9,14 @@ function timestamp(d = new Date()) {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`;
 }
 
+// Escape xuống dòng để một lần log luôn là đúng một dòng. Giá trị lấy từ request (ví dụ đoạn body
+// trong thông báo lỗi JSON) không thể chèn thêm dòng log giả.
+const oneLine = (text) => text.replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+
 function formatFields(fields) {
   return Object.entries(fields)
     .filter(([, value]) => value !== undefined)
-    .map(([key, value]) => `${key}=${typeof value === 'string' ? value : JSON.stringify(value)}`)
+    .map(([key, value]) => `${key}=${typeof value === 'string' ? oneLine(value) : JSON.stringify(value)}`)
     .join(' ');
 }
 

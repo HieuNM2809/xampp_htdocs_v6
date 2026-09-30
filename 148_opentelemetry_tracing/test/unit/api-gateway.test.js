@@ -95,6 +95,8 @@ test('order-service không chạy -> 503 ORDER_SERVICE_UNAVAILABLE', async () =>
   const res = await callGateway(url, { body: ORDER });
   assert.equal(res.status, 503);
   assert.equal(res.body.error, 'ORDER_SERVICE_UNAVAILABLE');
+  // Lý do cụ thể (ECONNREFUSED, địa chỉ nội bộ) chỉ ghi vào log, không trả cho client.
+  assert.doesNotMatch(res.body.message, /ECONNREFUSED|fetch failed|127\.0\.0\.1/);
   assert.ok(Date.now() - started < 6000, 'phải trả lời trong vòng timeout 5 giây');
 });
 
