@@ -1,0 +1,55 @@
+{
+  "result": {
+    "resourceSpans": [
+      {
+        "resource": {
+          "attributes": [
+            { "key": "service.name", "value": { "stringValue": "probe-svc" } },
+            { "key": "service.namespace", "value": { "stringValue": "shop" } }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": { "name": "probe" },
+            "spans": [
+              {
+                "traceId": "5b8efff798038103d269b633813fc60c",
+                "spanId": "eee19b7ec3c1b174",
+                "name": "POST /orders",
+                "kind": 2,
+                "startTimeUnixNano": "1790754833802257200",
+                "endTimeUnixNano": "1790754834702257200",
+                "attributes": [
+                  { "key": "http.response.status_code", "value": { "intValue": "502" } }
+                ],
+                "status": { "message": "boom", "code": 2 }
+              },
+              {
+                "traceId": "5b8efff798038103d269b633813fc60c",
+                "spanId": "eee19b7ec3c1b175",
+                "parentSpanId": "eee19b7ec3c1b174",
+                "name": "send order-events",
+                "kind": 4,
+                "startTimeUnixNano": "1790754833802257200",
+                "endTimeUnixNano": "1790754834702257200",
+                "attributes": [
+                  { "key": "customer.tier", "value": { "stringValue": "gold" } }
+                ],
+                "events": [
+                  {
+                    "timeUnixNano": "1790754834702257200",
+                    "name": "exception",
+                    "attributes": [
+                      { "key": "exception.type", "value": { "stringValue": "CARD_EXPIRED" } }
+                    ]
+                  }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
