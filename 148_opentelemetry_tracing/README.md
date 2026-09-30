@@ -125,7 +125,7 @@ Trong repo này chỉ cần `npm install`, vì `package.json` và `package-lock.
 
 | Package | Để làm gì |
 |---|---|
-| `@opentelemetry/sdk-node` | Gom toàn bộ SDK vào class `NodeSDK`: tracer provider, context manager (AsyncLocalStorage), propagator W3C, đọc các biến `OTEL_*` |
+| `@opentelemetry/sdk-node` | Gom toàn bộ SDK vào class `NodeSDK`: tracer provider, context manager (AsyncLocalStorage), propagator W3C, đọc các biến `OTEL_*`. Mặc định nó dựng cả phần metrics và logs; ví dụ này tắt hai phần đó (mục 4) |
 | `@opentelemetry/auto-instrumentations-node` | Gói sẵn các instrumentation: `http`, `express`, `undici` (hàm `fetch`), `ioredis`, `pg`, `mysql2`... |
 | `@opentelemetry/exporter-trace-otlp-proto` | Gửi span theo OTLP/HTTP + protobuf, cổng 4318 |
 | `@opentelemetry/api` | API mà code của bạn gọi: `trace`, `context`, `propagation`, `SpanStatusCode`... |
@@ -181,6 +181,14 @@ const {
 
 const pkg = require('../package.json');
 
+// Công tắc tắt khẩn cấp theo chuẩn OpenTelemetry. Phải kiểm tra TRƯỚC khi tạo instrumentation:
+// getNodeAutoInstrumentations() vá module ngay lúc được gọi, còn NodeSDK chỉ bỏ qua bước start().
+if (/^true$/i.test(process.env.OTEL_SDK_DISABLED || '')) {
+  console.log('[otel] OTEL_SDK_DISABLED=true: không bật tracing');
+  module.exports = { sdk: undefined };
+  return; // CommonJS bọc mỗi file trong một hàm, nên return ở cấp cao nhất là hợp lệ
+}
+
 // Mặc định SDK im lặng khi gửi trace thất bại (ví dụ quên `npm run infra:up`).
 // Bật mức WARN để thấy lỗi. Muốn xem chi tiết hơn thì đặt OTEL_LOG_LEVEL=debug, khi đó
 // NodeSDK tự cấu hình logger theo biến này.
@@ -210,6 +218,11 @@ const sdk = new NodeSDK({
   // rồi nối thêm /v1/traces. NodeSDK bọc exporter trong BatchSpanProcessor: span được gom lại và
   // gửi theo lô, mặc định khoảng 5 giây một lần (chỉnh bằng OTEL_BSP_SCHEDULE_DELAY).
   traceExporter: new OTLPTraceExporter(),
+  // Ví dụ này chỉ dùng tracing. Không khai báo gì thì NodeSDK còn tự export metrics và logs qua
+  // OTLP (OTEL_METRICS_EXPORTER / OTEL_LOGS_EXPORTER mặc định là "otlp"), trong khi Collector và
+  // Jaeger ở đây chỉ nhận traces, nên cứ 60 giây lại có lỗi 404. Mảng rỗng nghĩa là không export.
+  metricReaders: [],
+  logRecordProcessors: [],
   instrumentations: [
     getNodeAutoInstrumentations({
       '@opentelemetry/instrumentation-http': {
@@ -297,11 +310,15 @@ node --experimental-loader=@opentelemetry/instrumentation/hook.mjs --import ./te
 ```bash
 OTEL_SERVICE_NAME=order-service \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 \
+OTEL_METRICS_EXPORTER=none OTEL_LOGS_EXPORTER=none \
 node --require @opentelemetry/auto-instrumentations-node/register app.js
 
 # bản ESM
 node --experimental-loader=@opentelemetry/instrumentation/hook.mjs --import @opentelemetry/auto-instrumentations-node/register app.mjs
 ```
+
+Hai biến `OTEL_METRICS_EXPORTER=none` và `OTEL_LOGS_EXPORTER=none` tắt phần export metrics và logs mặc
+định. Bỏ chúng đi nếu backend nhận được cả hai loại dữ liệu này (xem "Chỉ bật tracing" bên dưới).
 
 Cách này nhanh nhất để thử, nhưng không cấu hình được từng instrumentation (`ignoreIncomingRequestHook`,
 tắt `router`...). Khi cần những thứ đó thì viết file như `src/tracing.js`.
@@ -322,6 +339,25 @@ Cách đó chạy được, nhưng rất dễ hỏng mà không ai hay:
 `BatchSpanProcessor` giữ span trong bộ nhớ và gửi theo lô khoảng 5 giây một lần. Tiến trình thoát ngang
 thì lô cuối mất. `tracing.js` bắt `SIGINT` / `SIGTERM`, gọi `sdk.shutdown()` để flush rồi mới
 `process.exit(0)`. Kubernetes gửi `SIGTERM` trước khi kill pod, nên đoạn này quan trọng trên production.
+
+### Chỉ bật tracing
+
+`NodeSDK` không chỉ lo tracing. Không khai báo gì thì nó còn tự dựng phần **metrics** và **logs**, và
+export cả hai qua OTLP (`OTEL_METRICS_EXPORTER`, `OTEL_LOGS_EXPORTER` mặc định là `otlp`). Instrumentation
+`runtime-node` trong auto-instrumentations luôn sinh metrics, nên cứ 60 giây lại có một lần gửi. Collector
+và Jaeger trong ví dụ chỉ nhận traces, nên mỗi lần gửi đều bị 404, và terminal in lỗi dạng
+`PeriodicExportingMetricReader: metrics export failed (error OTLPExporterError: Not Found)`.
+
+Vì vậy `tracing.js` truyền `metricReaders: []` và `logRecordProcessors: []`: không export metrics, không
+export logs. Muốn dùng metrics thì thêm một `PeriodicExportingMetricReader` vào mảng, và thêm pipeline
+`metrics` vào config của Collector.
+
+### Công tắc `OTEL_SDK_DISABLED`
+
+`OTEL_SDK_DISABLED=true` là biến chuẩn để tắt OpenTelemetry mà không sửa code. Nhưng `NodeSDK` chỉ bỏ qua
+bước `start()`. Còn `getNodeAutoInstrumentations()` thì vá module ngay lúc được gọi, trước cả khi `NodeSDK`
+đọc cờ. Vì vậy `tracing.js` tự kiểm tra cờ này ở đầu file. Khi cờ bật, không instrumentation nào được tạo
+và không module nào bị vá; terminal chỉ in `[otel] OTEL_SDK_DISABLED=true: không bật tracing`.
 
 ---
 
@@ -427,7 +463,7 @@ tracing nào cho HTTP**.
 const express = require('express');
 const { createLogger } = require('../shared/logger');
 const { withBaggage } = require('../shared/propagation');
-const { currentTraceId, errorHandler } = require('../shared/http');
+const { currentTraceId, errorHandler, listen } = require('../shared/http');
 
 const log = createLogger('api-gateway');
 
@@ -473,12 +509,15 @@ function createApp({ orderServiceUrl = process.env.ORDER_SERVICE_URL || 'http://
 }
 
 if (require.main === module) {
-  const port = Number(process.env.PORT) || 3000;
-  createApp().listen(port, () => log.info(`đang nghe http://localhost:${port}`));
+  listen(createApp(), Number(process.env.PORT) || 3000, log);
 }
 
 module.exports = { createApp, customerTierOf };
 ```
+
+`listen()` trong [`src/shared/http.js`](src/shared/http.js) kiểm tra lỗi khi mở cổng. Express 5 truyền lỗi
+như `EADDRINUSE` vào callback của `app.listen()`; bỏ qua tham số đó thì service vẫn in "đang nghe" dù thực
+ra không nghe gì.
 
 Chỉ nhờ `--require ./src/tracing.js`, mỗi request đã sinh ra các span sau:
 
@@ -1201,8 +1240,8 @@ notification-worker                    └─ email.send         INTERNAL
 
 | Lệnh | Cần gì | Kiểm tra gì |
 |---|---|---|
-| `npm test` | Không cần Docker | 43 unit test: helper tracing, propagation, logger, order-service, api-gateway, worker, client Jaeger |
-| `npm run test:integration` | `npm run infra:up` | `tracing.js` gửi được span qua Collector tới Jaeger, resource đúng, biến môi trường ghi đè được, Collector chết thì app không crash |
+| `npm test` | Không cần Docker | 45 unit test: helper tracing, propagation, logger, order-service, api-gateway, worker, client Jaeger, service thoát với mã lỗi khi cổng bị chiếm |
+| `npm run test:integration` | `npm run infra:up` | `tracing.js` gửi được span qua Collector tới Jaeger với stderr sạch, resource đúng, biến môi trường ghi đè được, `OTEL_SDK_DISABLED` không vá module nào, Collector chết thì app không crash |
 | `npm run verify` | `npm run infra:up` và `npm start` | 34 check end-to-end trên trace thật trong Jaeger |
 
 Unit test không gửi span đi đâu cả. [`test/helpers/otel.js`](test/helpers/otel.js) dựng OpenTelemetry
@@ -1321,7 +1360,9 @@ chạy nhiều Collector thì cần load balancing theo trace id.
   số dòng lệnh (xem mục 5). Chỉ bật detector cần thiết bằng `OTEL_NODE_RESOURCE_DETECTORS`, ví dụ
   `env,host`.
 - **Tên span ít giá trị khác nhau**, id để trong attribute (mục 7).
-- **Tắt nhanh khi có sự cố**: `OTEL_SDK_DISABLED=true`, không cần sửa code.
+- **Tắt nhanh khi có sự cố**: `OTEL_SDK_DISABLED=true`, không cần sửa code. Riêng `NodeSDK` chỉ bỏ qua
+  bước `start()` nên instrumentation vẫn vá module; `tracing.js` tự kiểm tra cờ ở đầu file để tắt hẳn
+  (mục 4).
 - **Pin phiên bản**: package `0.x` có thể phá API giữa các bản minor.
 - **Hai kiểu triển khai Collector**: *agent* (sidecar hoặc DaemonSet, chạy cạnh app) và *gateway* (một
   cụm tập trung). Thường kết hợp cả hai: app → agent → gateway → backend. App chỉ biết địa chỉ Collector,
@@ -1341,7 +1382,8 @@ chạy nhiều Collector thì cần load balancing theo trace id.
 | Span Express bị lặp, có span `middleware - patched` | Express 5 cùng lúc bị cả `instrumentation-express` lẫn `instrumentation-router` vá | Tắt `@opentelemetry/instrumentation-router` (mục 6) |
 | `/health` vẫn có trace | Hook so sai path | Kiểm tra `ignoreIncomingRequestHook`, nhớ bỏ query string |
 | `docker compose up` báo cổng bị chiếm | Đã có tiến trình khác dùng cổng đó | Đổi cổng bên trái trong `ports` (như Redis đang dùng `16379:6379`), rồi đổi biến môi trường tương ứng |
-| `EADDRINUSE :::3000` | Còn tiến trình service cũ | Tắt tiến trình cũ rồi chạy lại |
+| Service in `không mở được cổng 3000 reason=listen EADDRINUSE: address already in use :::3000` rồi thoát | Cổng đang bị tiến trình khác giữ, thường là service cũ chưa tắt | Tắt tiến trình đang giữ cổng rồi chạy lại, hoặc đổi `PORT` |
+| Cứ 60 giây terminal lại in `PeriodicExportingMetricReader: metrics export failed ... Not Found` | `NodeSDK` mặc định export metrics (và logs) qua OTLP, còn backend chỉ nhận traces | Truyền `metricReaders: []`, `logRecordProcessors: []` như `tracing.js`, hoặc đặt `OTEL_METRICS_EXPORTER=none`, `OTEL_LOGS_EXPORTER=none` (mục 4) |
 | App ESM không có span nào | Thiếu loader hook | Thêm `--experimental-loader=@opentelemetry/instrumentation/hook.mjs` (mục 4) |
 | `npm install` cảnh báo `EBADENGINE` cho `yargs-parser` trên Node 22.11 | Một phụ thuộc của `concurrently` 10 khai báo cần Node 22.12+ | Chỉ là cảnh báo, ví dụ vẫn chạy trên 22.11. Nâng Node lên 22.12+ là hết |
 | Windows: Ctrl+C xong thì thiếu vài span cuối | `concurrently` kill tiến trình con trước khi kịp flush | Chờ vài giây rồi mới dừng, hoặc chạy từng service riêng (`npm run start:order`...) |
