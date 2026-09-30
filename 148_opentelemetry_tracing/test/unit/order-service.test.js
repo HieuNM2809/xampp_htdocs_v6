@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const { once } = require('node:events');
 const { SpanKind, SpanStatusCode } = require('@opentelemetry/api');
 const { setupTestTracing, findSpan } = require('../helpers/otel');
+const { runEntryOnBusyPort } = require('../helpers/entry');
 const { createApp } = require('../../src/order-service/server');
 
 let exporter;
@@ -167,4 +168,12 @@ test('GET /health -> 200', async () => {
   const res = await request(createApp({ redis: fakeRedis() }), { method: 'GET', path: '/health' });
   assert.equal(res.status, 200);
   assert.deepEqual(res.body, { status: 'ok' });
+});
+
+test('cổng đã bị chiếm -> log lỗi EADDRINUSE và thoát với mã 1, không treo', async () => {
+  // REDIS_URL trỏ vào cổng không có ai nghe, để test không đụng tới Redis thật.
+  const { code, output } = await runEntryOnBusyPort('src/order-service/server.js', { REDIS_URL: 'redis://127.0.0.1:1' });
+  assert.equal(code, 1, output);
+  assert.match(output, /EADDRINUSE/);
+  assert.doesNotMatch(output, /đang nghe/);
 });

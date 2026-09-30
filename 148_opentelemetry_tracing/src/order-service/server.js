@@ -4,7 +4,7 @@ const express = require('express');
 const Redis = require('ioredis');
 const { createLogger } = require('../shared/logger');
 const { getBaggageValue } = require('../shared/propagation');
-const { currentTraceId, errorHandler } = require('../shared/http');
+const { currentTraceId, errorHandler, listen } = require('../shared/http');
 const { AppError } = require('./errors');
 const { validateOrder, reserveInventory, chargePayment, publishOrderCreated } = require('./steps');
 
@@ -52,7 +52,7 @@ if (require.main === module) {
   // maxRetriesPerRequest: 1 -> Redis chết thì request lỗi nhanh (500) thay vì treo chờ kết nối lại.
   const redis = new Redis(redisUrl, { maxRetriesPerRequest: 1 });
   redis.on('error', (err) => log.error('lỗi Redis', { reason: err.message }));
-  createApp({ redis }).listen(port, () => log.info(`đang nghe http://localhost:${port}`, { redis: redisUrl }));
+  listen(createApp({ redis }), port, log, { redis: redisUrl });
 }
 
 module.exports = { createApp };

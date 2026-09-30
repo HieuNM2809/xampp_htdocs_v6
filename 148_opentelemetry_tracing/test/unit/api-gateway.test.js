@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const { once } = require('node:events');
 const { setupTestTracing } = require('../helpers/otel');
+const { runEntryOnBusyPort } = require('../helpers/entry');
 const { createApp, customerTierOf } = require('../../src/api-gateway/server');
 
 setupTestTracing();
@@ -113,4 +114,11 @@ test('GET /health -> 200', async () => {
   const res = await callGateway('http://127.0.0.1:1', { method: 'GET', path: '/health' });
   assert.equal(res.status, 200);
   assert.deepEqual(res.body, { status: 'ok' });
+});
+
+test('cổng đã bị chiếm -> log lỗi EADDRINUSE và thoát với mã 1, không báo "đang nghe"', async () => {
+  const { code, output } = await runEntryOnBusyPort('src/api-gateway/server.js');
+  assert.equal(code, 1, output);
+  assert.match(output, /EADDRINUSE/);
+  assert.doesNotMatch(output, /đang nghe/);
 });

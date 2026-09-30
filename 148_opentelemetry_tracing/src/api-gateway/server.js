@@ -3,7 +3,7 @@
 const express = require('express');
 const { createLogger } = require('../shared/logger');
 const { withBaggage } = require('../shared/propagation');
-const { currentTraceId, errorHandler } = require('../shared/http');
+const { currentTraceId, errorHandler, listen } = require('../shared/http');
 
 const log = createLogger('api-gateway');
 
@@ -49,8 +49,7 @@ function createApp({ orderServiceUrl = process.env.ORDER_SERVICE_URL || 'http://
 }
 
 if (require.main === module) {
-  const port = Number(process.env.PORT) || 3000;
-  createApp().listen(port, () => log.info(`đang nghe http://localhost:${port}`));
+  listen(createApp(), Number(process.env.PORT) || 3000, log);
 }
 
 module.exports = { createApp, customerTierOf };

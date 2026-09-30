@@ -26,4 +26,18 @@ function errorHandler(log) {
   };
 }
 
-module.exports = { currentTraceId, errorHandler };
+/**
+ * Mở cổng cho Express app. Express 5 truyền lỗi (ví dụ EADDRINUSE khi cổng đã bị chiếm) vào
+ * callback của listen(). Không kiểm tra `err` thì service vẫn in "đang nghe" dù không nghe gì.
+ */
+function listen(app, port, log, fields) {
+  return app.listen(port, (err) => {
+    if (err) {
+      log.error(`không mở được cổng ${port}`, { reason: err.message });
+      process.exit(1);
+    }
+    log.info(`đang nghe http://localhost:${port}`, fields);
+  });
+}
+
+module.exports = { currentTraceId, errorHandler, listen };
