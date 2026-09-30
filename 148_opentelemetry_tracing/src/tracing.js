@@ -57,6 +57,11 @@ const sdk = new NodeSDK({
   // rồi nối thêm /v1/traces. NodeSDK bọc exporter trong BatchSpanProcessor: span được gom lại và
   // gửi theo lô, mặc định khoảng 5 giây một lần (chỉnh bằng OTEL_BSP_SCHEDULE_DELAY).
   traceExporter: new OTLPTraceExporter(),
+  // Ví dụ này chỉ dùng tracing. Không khai báo gì thì NodeSDK còn tự export metrics và logs qua
+  // OTLP (OTEL_METRICS_EXPORTER / OTEL_LOGS_EXPORTER mặc định là "otlp"), trong khi Collector và
+  // Jaeger ở đây chỉ nhận traces, nên cứ 60 giây lại có lỗi 404. Mảng rỗng nghĩa là không export.
+  metricReaders: [],
+  logRecordProcessors: [],
   instrumentations: [
     getNodeAutoInstrumentations({
       '@opentelemetry/instrumentation-http': {

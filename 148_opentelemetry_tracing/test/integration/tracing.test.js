@@ -14,9 +14,9 @@ const { waitForTrace } = require('../../scripts/lib/jaeger');
 const execFileAsync = promisify(execFile);
 const ROOT = path.join(__dirname, '..', '..');
 
-/** Chạy emit-span.js dưới --require ./src/tracing.js, trả về trace id nó in ra. */
+/** Chạy emit-span.js dưới --require ./src/tracing.js, trả về trace id nó in ra và stderr. */
 async function emitSpan(extraEnv = {}) {
-  const { stdout } = await execFileAsync(
+  const { stdout, stderr } = await execFileAsync(
     process.execPath,
     ['--require', './src/tracing.js', 'test/integration/fixtures/emit-span.js'],
     {
@@ -34,13 +34,15 @@ async function emitSpan(extraEnv = {}) {
   );
   const match = stdout.match(/TRACE_ID=([0-9a-f]{32})/);
   assert.ok(match, `Không thấy TRACE_ID trong output:\n${stdout}`);
-  return match[1];
+  return { traceId: match[1], stderr };
 }
 
 const hasSmokeSpan = (spans) => spans.some((s) => s.name === 'smoke-span');
 
 test('span đi qua Collector tới Jaeger, kèm resource attributes khai báo trong code', async () => {
-  const traceId = await emitSpan();
+  const { traceId, stderr } = await emitSpan();
+  // Hạ tầng chạy bình thường thì SDK không được in lỗi nào (ví dụ export metrics/logs bị 404).
+  assert.equal(stderr.trim(), '', `stderr phải rỗng, nhận:\n${stderr}`);
   const spans = await waitForTrace(traceId, hasSmokeSpan);
   const span = spans.find((s) => s.name === 'smoke-span');
   assert.ok(span, `Jaeger không có trace ${traceId}. Hạ tầng đã chạy chưa (npm run infra:up)?`);
@@ -54,9 +56,10 @@ test('span đi qua Collector tới Jaeger, kèm resource attributes khai báo tr
 });
 
 test('OTEL_RESOURCE_ATTRIBUTES ghi đè giá trị khai báo trong code', async () => {
-  const traceId = await emitSpan({
+  const { traceId, stderr } = await emitSpan({
     OTEL_RESOURCE_ATTRIBUTES: 'deployment.environment.name=staging,team.name=platform',
   });
+  assert.equal(stderr.trim(), '', `stderr phải rỗng, nhận:\n${stderr}`);
   const spans = await waitForTrace(traceId, hasSmokeSpan);
   const span = spans.find((s) => s.name === 'smoke-span');
   assert.ok(span, `Jaeger không có trace ${traceId}`);
@@ -65,7 +68,7 @@ test('OTEL_RESOURCE_ATTRIBUTES ghi đè giá trị khai báo trong code', async 
 });
 
 test('Collector không chạy: tiến trình vẫn chạy xong, không crash', async () => {
-  const traceId = await emitSpan({
+  const { traceId } = await emitSpan({
     OTEL_EXPORTER_OTLP_ENDPOINT: 'http://127.0.0.1:1', // cổng không có ai nghe
     OTEL_EXPORTER_OTLP_TIMEOUT: '2000',
   });
