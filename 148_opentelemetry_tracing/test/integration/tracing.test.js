@@ -67,6 +67,16 @@ test('OTEL_RESOURCE_ATTRIBUTES ghi đè giá trị khai báo trong code', async 
   assert.equal(span.resource['team.name'], 'platform');
 });
 
+test('OTEL_SDK_DISABLED=true: không vá module nào, không báo "tracing đã bật"', async () => {
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    ['--require', './src/tracing.js', '-e', "console.log('WRAPPED=' + Boolean(require('http').request.__wrapped))"],
+    { cwd: ROOT, env: { ...process.env, OTEL_SDK_DISABLED: 'true' }, timeout: 30000 }
+  );
+  assert.match(stdout, /WRAPPED=false/, stdout);
+  assert.doesNotMatch(stdout, /tracing đã bật/);
+});
+
 test('Collector không chạy: tiến trình vẫn chạy xong, không crash', async () => {
   const { traceId } = await emitSpan({
     OTEL_EXPORTER_OTLP_ENDPOINT: 'http://127.0.0.1:1', // cổng không có ai nghe

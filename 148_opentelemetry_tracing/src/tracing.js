@@ -28,6 +28,14 @@ const {
 
 const pkg = require('../package.json');
 
+// Công tắc tắt khẩn cấp theo chuẩn OpenTelemetry. Phải kiểm tra TRƯỚC khi tạo instrumentation:
+// getNodeAutoInstrumentations() vá module ngay lúc được gọi, còn NodeSDK chỉ bỏ qua bước start().
+if (/^true$/i.test(process.env.OTEL_SDK_DISABLED || '')) {
+  console.log('[otel] OTEL_SDK_DISABLED=true: không bật tracing');
+  module.exports = { sdk: undefined };
+  return; // CommonJS bọc mỗi file trong một hàm, nên return ở cấp cao nhất là hợp lệ
+}
+
 // Mặc định SDK im lặng khi gửi trace thất bại (ví dụ quên `npm run infra:up`).
 // Bật mức WARN để thấy lỗi. Muốn xem chi tiết hơn thì đặt OTEL_LOG_LEVEL=debug, khi đó
 // NodeSDK tự cấu hình logger theo biến này.
