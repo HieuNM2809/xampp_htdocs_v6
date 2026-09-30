@@ -66,6 +66,10 @@ const sdk = new NodeSDK({
       // dns.lookup / tcp.connect sinh rất nhiều span nhỏ mà không giúp đọc trace.
       '@opentelemetry/instrumentation-dns': { enabled: false },
       '@opentelemetry/instrumentation-net': { enabled: false },
+      // Express 5 chạy trên package `router`. Bật cả instrumentation-express lẫn
+      // instrumentation-router thì mỗi middleware/route bị tạo span 2 lần (thấy span
+      // "middleware - patched"). Chỉ giữ instrumentation-express.
+      '@opentelemetry/instrumentation-router': { enabled: false },
     }),
   ],
 });

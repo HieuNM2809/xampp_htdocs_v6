@@ -95,6 +95,13 @@ function checkSuccess(res, spans) {
       span?.resource['service.namespace'] === 'shop' && Boolean(span?.resource['deployment.environment.name'])
     );
   }
+  // Express 5 chạy trên package `router`. Nếu instrumentation-express và instrumentation-router
+  // cùng bật, mỗi middleware/route bị tạo span 2 lần (xuất hiện span "middleware - patched").
+  for (const service of ['api-gateway', 'order-service']) {
+    const handlers = spans.filter((x) => x.service === service && x.name.startsWith('request handler - '));
+    const patched = spans.some((x) => x.service === service && x.name === 'middleware - patched');
+    check(s, `${service}: span Express không bị lặp`, handlers.length === 1 && !patched, `${handlers.length} span request handler`);
+  }
   const errors = spans.filter((x) => x.status === 'ERROR');
   check(s, 'không span nào ERROR', errors.length === 0, errors.map((x) => x.name).join(', '));
 }
