@@ -71,7 +71,7 @@ client ─► api-gateway :3000 ──HTTP──► order-service :3001 ──Re
 | `jaeger` | Docker `jaegertracing/jaeger:2.21.0` | 16686 (UI), 14318 (OTLP HTTP) | Lưu trace trong bộ nhớ và hiển thị |
 | `redis` | Docker `redis:8-alpine` | 16379 | Hàng đợi `order-events` |
 
-- Cổng 6379 trên máy đã bị container `hasakinow-redis` chiếm, nên Redis của demo map ra 16379.
+- Cổng 6379 trên máy đã có một Redis khác chạy, nên Redis của demo map ra 16379.
 - Compose đặt `name: otel-tracing-demo` để tách khỏi các project khác và không đặt `container_name` cố định.
 
 ### 2.2 Trace mong đợi cho đơn thành công
