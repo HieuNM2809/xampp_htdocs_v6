@@ -664,7 +664,9 @@ function setupTestTracing() {
     propagation.setGlobalPropagator(
       new CompositePropagator({ propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()] })
     );
-    trace.setGlobalTracerProvider(new TracerProvider({ spanProcessors: [new SimpleSpanProcessor(exporter)] }));
+    // sdk-trace nhận options dạng object ({ exporter }), khác sdk-trace-base (truyền thẳng exporter).
+    // Truyền sai kiểu thì span vẫn được tạo nhưng không bao giờ tới exporter, và SDK không báo lỗi.
+    trace.setGlobalTracerProvider(new TracerProvider({ spanProcessors: [new SimpleSpanProcessor({ exporter })] }));
     installed = true;
   }
   exporter.reset();
