@@ -1,0 +1,38 @@
+# Pipeline: app --OTLP--> receiver otlp --> memory_limiter --> batch --> Jaeger (+ in ra log)
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        # Mặc định receiver chỉ nghe localhost:4317 / localhost:4318.
+        # Trong container, localhost là của riêng container, nên phải mở 0.0.0.0
+        # thì cổng map ra máy (4317/4318) mới nhận được dữ liệu.
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # Chặn Collector ăn hết RAM khi dữ liệu dồn về: vượt ngưỡng thì từ chối nhận thêm.
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+  # Gom span thành lô trước khi gửi, giảm số request tới backend.
+  batch: {}
+
+exporters:
+  # Từ Collector 0.161 exporter gRPC tên là otlp_grpc (tên cũ "otlp" đã deprecated).
+  otlp_grpc/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+  # In tóm tắt mỗi lô span ra log: docker compose logs -f otel-collector
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp_grpc/jaeger, debug]

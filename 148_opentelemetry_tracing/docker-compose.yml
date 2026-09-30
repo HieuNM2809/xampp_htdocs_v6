@@ -1,0 +1,25 @@
+# Hạ tầng cho ví dụ: OTel Collector + Jaeger + Redis.
+# 3 service Node chạy trên máy (npm start) và gửi trace tới Collector ở localhost:4318.
+name: otel-tracing-demo
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP (app gửi vào cổng này)
+    depends_on:
+      - jaeger
+
+  jaeger:
+    image: jaegertracing/jaeger:2.21.0
+    ports:
+      - "16686:16686" # Jaeger UI + API
+      - "14318:4318"  # OTLP HTTP của Jaeger, chỉ dùng cho chế độ gửi thẳng (npm run start:direct)
+
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "16379:6379"  # tránh 6379 vì máy dev thường đã có Redis khác chạy ở đó

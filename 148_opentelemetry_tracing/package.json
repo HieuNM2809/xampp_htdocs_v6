@@ -1,0 +1,53 @@
+{
+  "name": "opentelemetry-tracing-nodejs-example",
+  "version": "1.0.0",
+  "description": "Ví dụ OpenTelemetry tracing cho Node.js: Express, custom span, truyền context qua HTTP và Redis, export tới OTel Collector / Jaeger",
+  "type": "commonjs",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "infra:logs": "docker compose logs -f otel-collector",
+    "start:gateway": "cross-env OTEL_SERVICE_NAME=api-gateway PORT=3000 node --require ./src/tracing.js src/api-gateway/server.js",
+    "start:order": "cross-env OTEL_SERVICE_NAME=order-service PORT=3001 node --require ./src/tracing.js src/order-service/server.js",
+    "start:worker": "cross-env OTEL_SERVICE_NAME=notification-worker node --require ./src/tracing.js src/notification-worker/worker.js",
+    "start": "concurrently -n gateway,order,worker -c cyan,magenta,yellow npm:start:gateway npm:start:order npm:start:worker",
+    "start:direct": "cross-env OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:14318 npm start",
+    "demo": "node scripts/demo.js",
+    "verify": "node scripts/verify-traces.js",
+    "test": "node --test \"test/unit/**/*.test.js\"",
+    "test:integration": "node --test \"test/integration/**/*.test.js\""
+  },
+  "keywords": [
+    "opentelemetry",
+    "tracing",
+    "distributed-tracing",
+    "jaeger",
+    "otel-collector",
+    "express",
+    "redis",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/auto-instrumentations-node": "^0.80.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.222.0",
+    "@opentelemetry/resources": "^2.11.0",
+    "@opentelemetry/sdk-node": "^0.222.0",
+    "@opentelemetry/semantic-conventions": "^1.43.0",
+    "express": "^5.2.1",
+    "ioredis": "^6.0.0"
+  },
+  "devDependencies": {
+    "@opentelemetry/context-async-hooks": "^2.11.0",
+    "@opentelemetry/core": "^2.11.0",
+    "@opentelemetry/sdk-trace": "^2.11.0",
+    "concurrently": "^10.0.5",
+    "cross-env": "^10.1.0"
+  }
+}
