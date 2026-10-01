@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ClaudeCodeTabState">
+    <option name="tabSessions">
+      <map>
+        <entry key="0">
+          <value>
+            <TabSessionState>
+              <option name="projectPath" value="D:\HieuNM\xampp_htdocs_v6\148_opentelemetry_tracing" />
+              <option name="provider" value="claude" />
+              <option name="sessionId" value="30b89683-b001-4d60-9fa9-7d39b4b3a1a3" />
+              <option name="cwd" value="D:\HieuNM\xampp_htdocs_v6\148_opentelemetry_tracing" />
+              <option name="model" value="claude-opus-5-5[1m]" />
+              <option name="permissionMode" value="bypassPermissions" />
+              <option name="reasoningEffort" value="max" />
+            </TabSessionState>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
