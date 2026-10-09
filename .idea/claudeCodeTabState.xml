@@ -6,10 +6,11 @@
         <entry key="0">
           <value>
             <TabSessionState>
+              <option name="projectPath" value="D:\HieuNM\xampp_htdocs_v6" />
               <option name="provider" value="claude" />
-              <option name="sessionId" value="380c3d38-9a75-4ee5-9666-66eb6e866605" />
+              <option name="sessionId" value="9939784f-710a-433a-8bb2-660b16c7de36" />
               <option name="cwd" value="D:\HieuNM\xampp_htdocs_v6" />
-              <option name="model" value="claude-opus-4-8[1m]" />
+              <option name="model" value="claude-opus-5[1m]" />
               <option name="permissionMode" value="bypassPermissions" />
               <option name="reasoningEffort" value="max" />
             </TabSessionState>
