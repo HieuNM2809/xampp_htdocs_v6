@@ -1,0 +1,52 @@
+# Meilisearch + ứng dụng Node.js của ví dụ.
+#
+#   docker compose up -d meilisearch   chỉ bật Meilisearch, app chạy trên máy (npm start)
+#   docker compose up                  bật Meilisearch rồi chạy app trong container
+#                                      (app xong thì thoát, Meilisearch vẫn chạy — Ctrl+C để dừng)
+#   docker compose run --rm app npm run demo   chạy lại riêng phần demo
+#
+# Giá trị ${...} lấy từ file .env cùng thư mục (xem .env.example). Không có .env thì dùng mặc định.
+name: meilisearch-demo
+
+services:
+  meilisearch:
+    image: getmeili/meilisearch:v1.54.3
+    restart: unless-stopped
+    environment:
+      # Master key: toàn quyền trên instance. Tối thiểu 16 byte khi MEILI_ENV=production.
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-MASTER_KEY_DEMO_DOI_TRUOC_KHI_LEN_PROD}
+      # development bật giao diện search preview ở http://localhost:7700; production tắt nó đi.
+      MEILI_ENV: ${MEILI_ENV:-development}
+      MEILI_NO_ANALYTICS: "true"
+      # Mặc định INFO ghi một dòng cho MỖI request HTTP, lấp mất output của app
+      # khi chạy "docker compose up". Đặt DEBUG trong .env khi cần soi.
+      MEILI_LOG_LEVEL: ${MEILI_LOG_LEVEL:-WARN}
+    ports:
+      - "7700:7700"
+    volumes:
+      # Meilisearch ghi dữ liệu vào /meili_data (data.ms/ và dumps/).
+      # Không mount volume thì xoá container là mất sạch index.
+      - meili_data:/meili_data
+    healthcheck:
+      # Image dựa trên Alpine và có sẵn curl.
+      test: ["CMD", "curl", "-fsS", "http://localhost:7700/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  app:
+    build: .
+    depends_on:
+      meilisearch:
+        # Chờ healthcheck PASS rồi mới chạy app, tránh lỗi ECONNREFUSED lúc khởi động.
+        condition: service_healthy
+    environment:
+      # Trong mạng của compose, Meilisearch có tên host là "meilisearch".
+      MEILI_HOST: http://meilisearch:7700
+      # Demo dùng thẳng master key cho gọn. Trên production hãy tạo API key riêng (npm run keys).
+      MEILI_API_KEY: ${MEILI_MASTER_KEY:-MASTER_KEY_DEMO_DOI_TRUOC_KHI_LEN_PROD}
+      MEILI_INDEX: ${MEILI_INDEX:-products}
+
+volumes:
+  meili_data:

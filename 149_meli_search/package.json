@@ -1,0 +1,36 @@
+{
+  "name": "meilisearch-nodejs-example",
+  "version": "1.0.0",
+  "description": "Ví dụ Meilisearch với Node.js và Docker: tạo index, cấu hình attributes, tìm kiếm, filter, facet, phân trang, highlight, xoá document",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "infra:up": "docker compose up -d meilisearch",
+    "infra:down": "docker compose down",
+    "infra:clean": "docker compose down -v",
+    "infra:logs": "docker compose logs -f meilisearch",
+    "setup": "node src/setup.js",
+    "demo": "node src/demo.js",
+    "verify": "node scripts/verify.js",
+    "keys": "node src/keys.js",
+    "start": "npm run setup && npm run demo",
+    "docker:demo": "docker compose run --rm app npm start"
+  },
+  "keywords": [
+    "meilisearch",
+    "search-engine",
+    "full-text-search",
+    "faceted-search",
+    "typo-tolerance",
+    "docker",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "meilisearch": "^0.62.0"
+  }
+}
