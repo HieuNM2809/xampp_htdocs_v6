@@ -1,0 +1,55 @@
+{
+  "name": "nodejs-signoz-observability-demo",
+  "version": "1.0.0",
+  "description": "Demo observability cho Node.js: Express + OpenTelemetry (traces, metrics, logs) gửi qua OTLP/HTTP tới SigNoz, chạy bằng Docker",
+  "type": "commonjs",
+  "private": true,
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=22.15"
+  },
+  "scripts": {
+    "start": "node --require ./src/tracing.js src/server.js",
+    "start:payment": "node --require ./src/tracing.js src/payment-service.js",
+    "dev:order": "cross-env OTEL_SERVICE_NAME=order-service PORT=3400 node --require ./src/tracing.js src/server.js",
+    "dev:payment": "cross-env OTEL_SERVICE_NAME=payment-service PORT=3401 node --require ./src/tracing.js src/payment-service.js",
+    "dev": "concurrently -n order,payment -c cyan,magenta npm:dev:order npm:dev:payment",
+    "test": "node --test \"test/**/*.test.js\"",
+    "verify": "node scripts/verify.js",
+    "traffic": "node scripts/generate-traffic.js",
+    "check:otlp": "node scripts/check-otlp.js",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  },
+  "keywords": [
+    "signoz",
+    "opentelemetry",
+    "observability",
+    "tracing",
+    "metrics",
+    "logs",
+    "express",
+    "docker",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@opentelemetry/api": "^1.10.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.82.0",
+    "@opentelemetry/exporter-logs-otlp-http": "^0.300.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.300.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.300.0",
+    "@opentelemetry/resources": "^3.0.0",
+    "@opentelemetry/sdk-logs": "^3.0.0",
+    "@opentelemetry/sdk-metrics": "^3.0.0",
+    "@opentelemetry/sdk-node": "^0.300.0",
+    "express": "^5.3.0",
+    "pino": "^10.4.0"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6",
+    "cross-env": "^10.1.0"
+  }
+}

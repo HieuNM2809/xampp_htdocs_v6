@@ -1,0 +1,72 @@
+# CÁCH A: order-service + payment-service gửi traces, metrics, logs tới SigNoz self-host chạy trên
+# CÙNG máy Docker.
+#
+# Hai container của app được nối thêm vào network Docker của SigNoz, nên gọi thẳng collector của
+# SigNoz bằng TÊN (DNS nội bộ của Docker) thay vì đi vòng qua cổng 4318 của máy host:
+#
+#   SigNoz cài bằng Foundry (cách chính thức hiện nay)   network signoz-network   host signoz-ingester
+#   SigNoz cài bằng docker compose cũ (<= v0.129.0)       network signoz-net       host otel-collector
+#
+# Mặc định khớp với Foundry. Dùng bản cũ thì đặt SIGNOZ_NETWORK và SIGNOZ_OTLP_ENDPOINT trong .env.
+# SigNoz ở máy khác, cài kiểu khác, hoặc SigNoz Cloud: dùng docker-compose.standalone.yml (cách B).
+#
+#   docker compose up -d --build     build image rồi chạy 2 service (SigNoz phải đang chạy trước)
+#   docker compose ps                xem trạng thái, chờ cột STATUS hiện (healthy)
+#   docker compose logs -f           xem log của cả hai service
+#   docker compose down              dừng và xoá container của app (SigNoz không bị ảnh hưởng)
+name: nodejs-signoz-demo
+
+# Cấu hình chung của hai service. "x-..." là extension field: compose bỏ qua, chỉ để làm YAML anchor.
+x-app: &app
+  build: .
+  image: nodejs-signoz-demo:1.0.0
+  restart: unless-stopped
+  networks:
+    - default # network riêng của project: order-service gọi payment-service qua đây
+    - signoz # network của SigNoz: gửi telemetry tới collector qua đây
+
+# Biến môi trường OpenTelemetry dùng chung cho cả hai service.
+x-otel-env: &otel-env
+  # Địa chỉ GỐC của OTLP/HTTP receiver (cổng 4318, KHÔNG phải 4317 là gRPC).
+  # SDK tự nối thêm /v1/traces, /v1/metrics, /v1/logs; đừng tự thêm vào đây.
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${SIGNOZ_OTLP_ENDPOINT:-http://signoz-ingester:4318}
+  # Gắn vào MỌI span/metric/log. SigNoz dùng deployment.environment cho bộ lọc Environment, và lấy
+  # service.namespace, service.version, deployment.environment làm chiều cho metric APM (trang Services).
+  OTEL_RESOURCE_ATTRIBUTES: service.namespace=shop-demo,service.version=${SERVICE_VERSION:-1.0.0},deployment.environment=${DEPLOYMENT_ENVIRONMENT:-docker-demo}
+  OTEL_METRIC_EXPORT_INTERVAL: ${OTEL_METRIC_EXPORT_INTERVAL:-15000}
+  OTEL_LOG_LEVEL: ${OTEL_LOG_LEVEL:-warn}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
+services:
+  order-service:
+    <<: *app
+    ports:
+      - "${ORDER_SERVICE_PORT:-3400}:3400"
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: order-service
+      PORT: "3400"
+      # Gọi payment-service qua network riêng của project, bằng tên service.
+      PAYMENT_SERVICE_URL: http://payment-service:3401
+    depends_on:
+      payment-service:
+        condition: service_healthy # chờ healthcheck của payment-service PASS rồi mới chạy
+
+  payment-service:
+    <<: *app
+    # Cùng image, chỉ khác file chạy (lệnh mặc định trong Dockerfile chạy src/server.js).
+    command: ["node", "--require", "./src/tracing.js", "src/payment-service.js"]
+    ports:
+      - "${PAYMENT_SERVICE_PORT:-3401}:3401"
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: payment-service
+      PORT: "3401"
+      PAYMENT_FAILURE_RATE: ${PAYMENT_FAILURE_RATE:-0.15}
+
+networks:
+  signoz:
+    # external: network do SigNoz tạo ra, project này chỉ "mượn" chứ không tạo hay xoá nó.
+    # SigNoz chưa chạy thì báo lỗi: network signoz-network declared as external, but could not be found
+    name: ${SIGNOZ_NETWORK:-signoz-network}
+    external: true

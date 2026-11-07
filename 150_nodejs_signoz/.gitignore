@@ -1,0 +1,7 @@
+node_modules/
+.env
+*.log
+
+# Foundry sinh ra khi chạy foundryctl trong thư mục signoz/ (tạo lại được bất cứ lúc nào)
+signoz/pours/
+signoz/casting.yaml.lock

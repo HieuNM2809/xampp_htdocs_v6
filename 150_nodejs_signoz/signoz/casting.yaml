@@ -1,0 +1,26 @@
+# Casting cho Foundry: mô tả bản cài SigNoz self-host bằng Docker Compose trên máy này.
+#
+#   cd signoz
+#   foundryctl cast -f casting.yaml        # kiểm tra công cụ → sinh file vào ./pours → docker compose up
+#
+# Hoặc sinh file rồi tự chạy docker compose:
+#
+#   foundryctl forge -f casting.yaml
+#   cd pours/deployment && docker compose up -d
+#
+# Kết quả mặc định (Foundry v0.5, SigNoz v0.149):
+#   UI         http://localhost:8080
+#   OTLP gRPC  localhost:4317      OTLP HTTP  localhost:4318
+#   Network    signoz-network      Collector  service "ingester", alias "signoz-ingester"
+#
+# Tài liệu đầy đủ các trường: https://github.com/SigNoz/foundry/blob/main/docs/reference/casting-file.md
+apiVersion: v1alpha1
+kind: Installation
+metadata:
+  # Tên này quyết định tên compose project và tên network (signoz-network).
+  # Đổi tên thì nhớ sửa SIGNOZ_NETWORK trong .env của app cho khớp.
+  name: signoz
+spec:
+  deployment:
+    mode: docker
+    flavor: compose

@@ -1,0 +1,14 @@
+# Không gửi những thứ này vào build context: nhẹ hơn, build nhanh hơn, không lộ .env vào image.
+node_modules/
+npm-debug.log
+*.log
+.env
+.git/
+.gitignore
+.idea/
+.vscode/
+signoz/
+README.md
+Dockerfile
+.dockerignore
+docker-compose*.yml

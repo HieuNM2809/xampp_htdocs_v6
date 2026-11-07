@@ -1,0 +1,60 @@
+# CÁCH B: app KHÔNG chung network Docker với SigNoz, gửi telemetry qua một địa chỉ "từ bên ngoài":
+#
+#   - SigNoz chạy trên chính máy này (Foundry, docker compose cũ, WSL...): đi qua cổng 4318 mà SigNoz
+#     đã mở ra máy host → http://host.docker.internal:4318 (mặc định)
+#   - SigNoz ở máy khác trong mạng LAN → http://<ip-máy-đó>:4318
+#   - SigNoz Cloud → https://ingest.<region>.signoz.cloud:443 kèm ingestion key
+#
+# Đặt OTEL_EXPORTER_OTLP_ENDPOINT / OTEL_EXPORTER_OTLP_HEADERS trong .env rồi chạy:
+#
+#   docker compose -f docker-compose.standalone.yml up -d --build
+#   docker compose -f docker-compose.standalone.yml logs -f
+#   docker compose -f docker-compose.standalone.yml down
+#
+# Cùng tên project với docker-compose.yml: chuyển qua lại giữa cách A và B thì container được tạo lại,
+# không bị trùng cổng.
+name: nodejs-signoz-demo
+
+x-app: &app
+  build: .
+  image: nodejs-signoz-demo:1.0.0
+  restart: unless-stopped
+  extra_hosts:
+    # Docker Desktop (Windows/macOS) có sẵn tên host.docker.internal; Linux thì không.
+    # Dòng này ánh xạ tên đó tới IP của máy host. Trên Docker Desktop giữ nguyên cũng không sao.
+    - "host.docker.internal:host-gateway"
+
+x-otel-env: &otel-env
+  # Địa chỉ GỐC của OTLP/HTTP receiver. SDK tự nối thêm /v1/traces, /v1/metrics, /v1/logs.
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://host.docker.internal:4318}
+  # Header gửi kèm mỗi request. Tự host thì để trống; SigNoz Cloud: signoz-ingestion-key=<key>
+  OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+  OTEL_RESOURCE_ATTRIBUTES: service.namespace=shop-demo,service.version=${SERVICE_VERSION:-1.0.0},deployment.environment=${DEPLOYMENT_ENVIRONMENT:-docker-demo}
+  OTEL_METRIC_EXPORT_INTERVAL: ${OTEL_METRIC_EXPORT_INTERVAL:-15000}
+  OTEL_LOG_LEVEL: ${OTEL_LOG_LEVEL:-warn}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
+services:
+  order-service:
+    <<: *app
+    ports:
+      - "${ORDER_SERVICE_PORT:-3400}:3400"
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: order-service
+      PORT: "3400"
+      PAYMENT_SERVICE_URL: http://payment-service:3401
+    depends_on:
+      payment-service:
+        condition: service_healthy
+
+  payment-service:
+    <<: *app
+    command: ["node", "--require", "./src/tracing.js", "src/payment-service.js"]
+    ports:
+      - "${PAYMENT_SERVICE_PORT:-3401}:3401"
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: payment-service
+      PORT: "3401"
+      PAYMENT_FAILURE_RATE: ${PAYMENT_FAILURE_RATE:-0.15}
