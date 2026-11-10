@@ -154,7 +154,8 @@ Từ lúc gọi API tới lúc thấy trên SigNoz mất khoảng **5–20 giây
 ├── docs/
 │   ├── README.md                    hướng dẫn: cài SigNoz, chạy demo, đọc dữ liệu trên SigNoz, xử lý sự cố
 │   ├── ARCHITECTURE.md              phân tích mã nguồn: kiến trúc, đường đi của một request, cơ chế telemetry
-│   └── GLOSSARY.md                  bảng tra thuật ngữ SigNoz / OpenTelemetry, kèm chỗ thấy chúng trong demo
+│   ├── GLOSSARY.md                  bảng tra thuật ngữ SigNoz / OpenTelemetry, kèm chỗ thấy chúng trong demo
+│   └── TRACE_PROPAGATION.md         truyền trace id và span cha giữa các service (header traceparent)
 ├── package.json, package-lock.json
 ├── Dockerfile                       multi-stage, node:26-slim, chạy bằng user "node", có HEALTHCHECK
 ├── .dockerignore, .gitignore

@@ -271,6 +271,8 @@ payment-client.js:30  fetch()
                                                     parent   = 42b102…
 ```
 
+Chi tiết, dữ liệu thật và cách tự kiểm chứng: [TRACE_PROPAGATION.md](TRACE_PROPAGATION.md).
+
 ### 4.4 Log được gắn trace_id/span_id như thế nào
 
 `src/lib/logger.js` chỉ tạo một logger pino bình thường. instrumentation-pino (bật sẵn,
