@@ -259,7 +259,7 @@ function finish(startedAt) {
   const passed = results.filter((r) => r.ok).length;
   const failedChecks = results.length - passed;
   console.log(`\nKết quả: ${passed}/${results.length} check đạt (${Math.round((Date.now() - startedAt) / 1000)} s)`);
-  if (failedChecks > 0) console.log('Chưa đạt — xem mục "Xử lý sự cố" trong README, hoặc chạy: node scripts/check-otlp.js');
+  if (failedChecks > 0) console.log('Chưa đạt — xem mục "Xử lý sự cố" trong docs/README.md, hoặc chạy: node scripts/check-otlp.js');
   process.exit(failedChecks > 0 ? 1 : 0);
 }
 

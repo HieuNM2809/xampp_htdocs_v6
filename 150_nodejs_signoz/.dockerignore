@@ -8,7 +8,7 @@ npm-debug.log
 .idea/
 .vscode/
 signoz/
-README.md
+docs/
 Dockerfile
 .dockerignore
 docker-compose*.yml

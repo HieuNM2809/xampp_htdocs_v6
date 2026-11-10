@@ -7,7 +7,7 @@ app, sinh traffic, rồi đọc Services / Traces / Logs / Dashboard trên giao 
 các lỗi hay gặp.
 
 ```
- ┌──────────── project nodejs-signoz-demo (docker-compose.yml của thư mục này) ─────────────────┐
+ ┌──────────── project nodejs-signoz-demo (docker-compose.yml ở thư mục gốc) ───────────────────┐
  │                                                                                              │
  │   order-service :3400  ──── HTTP + header traceparent ───►    payment-service :3401          │
  │   Express 5 + OpenTelemetry SDK                               Express 5 + OpenTelemetry SDK  │
@@ -151,7 +151,10 @@ Từ lúc gọi API tới lúc thấy trên SigNoz mất khoảng **5–20 giây
 
 ```
 150_nodejs_signoz/
-├── README.md
+├── docs/
+│   ├── README.md                    hướng dẫn: cài SigNoz, chạy demo, đọc dữ liệu trên SigNoz, xử lý sự cố
+│   ├── ARCHITECTURE.md              phân tích mã nguồn: kiến trúc, đường đi của một request, cơ chế telemetry
+│   └── GLOSSARY.md                  bảng tra thuật ngữ SigNoz / OpenTelemetry, kèm chỗ thấy chúng trong demo
 ├── package.json, package-lock.json
 ├── Dockerfile                       multi-stage, node:26-slim, chạy bằng user "node", có HEALTHCHECK
 ├── .dockerignore, .gitignore
@@ -201,6 +204,8 @@ Từ lúc gọi API tới lúc thấy trên SigNoz mất khoảng **5–20 giây
 - **Docker** có Compose v2 (Docker Desktop trên Windows/macOS, Docker Engine 20.10+ trên Linux).
 - **RAM cho Docker ≥ 4 GB.** SigNoz gồm ClickHouse, ClickHouse Keeper, PostgreSQL, collector và
   server; ít RAM hơn thì container khởi động lại liên tục.
+- **Ổ đĩa còn trống ≥ 10 GB** trên ổ chứa dữ liệu Docker (Windows: thường là C:). Image của SigNoz
+  chiếm khoảng 3,5 GB, ClickHouse còn lớn dần theo dữ liệu. Ổ đầy làm WSL và Docker treo (mục 12.9).
 - Các cổng trống: 8080, 4317, 4318 (SigNoz), 3400, 3401 (app).
 - **Node.js ≥ 22.15** chỉ khi muốn chạy app ngoài Docker (OpenTelemetry JS SDK 3.x yêu cầu bản này).
   Riêng hai script trong `scripts/` chạy được với mọi bản Node có `fetch` (≥ 18).
@@ -251,7 +256,7 @@ foundryctl --help
 
 **Bước 2 — Chạy SigNoz bằng casting có sẵn trong demo**
 
-File [`signoz/casting.yaml`](signoz/casting.yaml) là cấu hình tối thiểu: Docker, flavor compose.
+File [`signoz/casting.yaml`](../signoz/casting.yaml) là cấu hình tối thiểu: Docker, flavor compose.
 
 ```bash
 cd signoz
@@ -300,7 +305,7 @@ chạy một lần rồi dừng với `Exited (0)`: đó là bước tạo bản
 | metastore | `signoz-metastore-postgres-0` | PostgreSQL, lưu user, dashboard, alert |
 
 Tất cả nằm trong network Docker **`signoz-network`**; collector có thêm alias **`signoz-ingester`**.
-Đây là hai tên mà [`docker-compose.yml`](docker-compose.yml) của demo dùng để kết nối.
+Đây là hai tên mà [`docker-compose.yml`](../docker-compose.yml) của demo dùng để kết nối.
 
 **Bước 4 — Tạo tài khoản admin đầu tiên (BẮT BUỘC)**
 
@@ -468,7 +473,7 @@ nodejs-signoz-demo-order-service-1     Up 12 seconds (healthy)   0.0.0.0:3400->3
 nodejs-signoz-demo-payment-service-1   Up 19 seconds (healthy)   0.0.0.0:3401->3401/tcp
 ```
 
-Điều gì xảy ra trong [`docker-compose.yml`](docker-compose.yml) (rút gọn, bỏ các biến `${...}` phụ):
+Điều gì xảy ra trong [`docker-compose.yml`](../docker-compose.yml) (rút gọn, bỏ các biến `${...}` phụ):
 
 ```yaml
 x-app: &app
@@ -635,7 +640,7 @@ Hai lớp kiểm thử, chạy lại được bất cứ lúc nào:
 | `npm test` | chỉ Node.js (≥ 22.15), **không** cần Docker hay SigNoz | Ứng dụng phát ra đúng telemetry |
 | `npm run verify` | SigNoz tự host (Docker) + app đang chạy | Telemetry đi hết đường App → Collector → ClickHouse |
 
-**`npm test`** ([`test/telemetry.test.js`](test/telemetry.test.js)) chạy order-service và payment-service
+**`npm test`** ([`test/telemetry.test.js`](../test/telemetry.test.js)) chạy order-service và payment-service
 thật, đúng lệnh `node --require ./src/tracing.js ...`, nhưng thay SigNoz bằng một OTLP receiver giả
 dựng ngay trong test, rồi kiểm tra từng gói traces/metrics/logs mà SDK gửi tới: trace nối qua 2
 service bằng `traceparent`, span DB có `db.system`, lỗi gốc nằm ở `bank.authorize`, 4xx không bị tô đỏ,
@@ -671,7 +676,7 @@ docker run --rm -v "${PWD}\test:/app/test:ro" --entrypoint node nodejs-signoz-de
 docker run --rm -v "$PWD/test:/app/test:ro" --entrypoint node nodejs-signoz-demo:1.0.0 --test --test-reporter=spec test/telemetry.test.js
 ```
 
-**`npm run verify`** ([`scripts/verify.js`](scripts/verify.js)) gọi API thật, giữ lại trace ID từ header
+**`npm run verify`** ([`scripts/verify.js`](../scripts/verify.js)) gọi API thật, giữ lại trace ID từ header
 `X-Trace-Id`, rồi truy vấn thẳng ClickHouse của SigNoz (qua `docker exec`, không cần API key) để
 kiểm tra 35 điểm: trace đủ 2 service và nối đúng cha-con, *Database Calls* / *External Calls* có dữ
 liệu, exception vào bảng lỗi, log khớp trace_id, metric mới được ghi (kể cả `signoz_calls_total` do
@@ -1048,7 +1053,7 @@ phẩm), **không** đưa mã đơn hay user ID vào metric: mỗi giá trị kh
 
 ### 10.5 Log nối với trace
 
-[`src/lib/logger.js`](src/lib/logger.js) chỉ là pino bình thường. instrumentation-pino (bật sẵn trong
+[`src/lib/logger.js`](../src/lib/logger.js) chỉ là pino bình thường. instrumentation-pino (bật sẵn trong
 auto-instrumentations-node) lo hết: chèn `trace_id`, `span_id`, `trace_flags` vào mỗi dòng log ghi
 trong lúc có span đang chạy, và gửi bản sao mỗi dòng thành LogRecord qua OTLP. Điều kiện duy nhất:
 pino phải được `require` **sau** tracing.js — `--require` đảm bảo việc đó.
@@ -1212,6 +1217,59 @@ lsof -i :3400        # macOS / Linux
 - Không thấy log: kiểm tra logger là **pino** (hoặc winston/bunyan, cũng có instrumentation) và được
   require sau tracing.js. `console.log` **không** được gửi đi.
 - Metric riêng của app chỉ xuất hiện sau lần ghi đầu tiên: `shop.orders` cần ít nhất một đơn hàng.
+
+### 12.9 Docker và WSL treo: `Wsl/Service/0x80072745` (ổ đĩa đầy)
+
+Gặp thật trên máy Windows chạy demo:
+
+- Lệnh `docker ...` treo không trả lời; mở Ubuntu (WSL) thì báo
+
+  ```
+  The Windows Subsystem for Linux instance has terminated.
+  Error code: Wsl/Service/0x80072745
+  ```
+
+  trong khi `wsl -l -v` vẫn hiện `Running`.
+- Nguyên nhân: **ổ C: hết chỗ**. Log của Docker Desktop
+  (`%LOCALAPPDATA%\Docker\log\host\monitor.log`) có dòng `There is not enough space on the disk`.
+  Docker Desktop và mọi distro WSL chạy chung **một** máy ảo, đĩa của nó là các file `.vhdx` trên ổ C:
+  (`%LOCALAPPDATA%\Docker\wsl\disk\docker_data.vhdx`, `...\LocalState\ext4.vhdx` của Ubuntu). Các file
+  này chỉ phình ra, **không tự co lại** khi xoá image hay dữ liệu bên trong.
+
+Cách sửa:
+
+1. Giải phóng dung lượng ổ C:.
+2. `wsl --shutdown`. Lần đầu có thể treo (máy ảo đã chết); chạy lại lần nữa, lần hai xong trong
+   khoảng 20 giây. Lệnh này dừng **mọi** distro WSL và **mọi** container.
+3. Mở lại Docker Desktop (hoặc `docker desktop restart`), đợi `docker desktop status` báo `running`.
+4. Container không có `restart:` policy sẽ không tự lên lại: `docker start <tên>` hoặc
+   `docker compose up -d`.
+5. Kiểm tra `docker ps`: cột PORTS phải có `0.0.0.0:3400->3400/tcp`. Nếu chỉ còn `3400/tcp`, gọi
+   `localhost:3400` bị timeout, log `%LOCALAPPDATA%\Docker\log\host\com.docker.backend.exe.log` báo
+   `failed to expose port: listen tcp 0.0.0.0:3400: bind: address already in use` mà trên Windows không có
+   gì dùng cổng đó: WSL đang chạy chế độ **`networkingMode=mirrored`** (trong `%USERPROFILE%\.wslconfig`)
+   và còn giữ "ma" các cổng của máy ảo đã sập. `wsl --shutdown` và khởi động lại Docker Desktop **không**
+   gỡ được; phải khởi động lại dịch vụ WSL — thoát Docker Desktop, mở PowerShell **Run as administrator**:
+
+   ```powershell
+   wsl --shutdown
+   Restart-Service WSLService -Force
+   ```
+
+   rồi mở lại Docker Desktop. Cách chắc chắn nhất là khởi động lại Windows.
+
+Đo và dọn dung lượng **bên trong** Docker:
+
+```bash
+docker system df            # image, container, volume, build cache chiếm bao nhiêu
+docker builder prune        # xoá build cache
+docker image prune          # xoá image "dangling" (không tên, không ai dùng)
+```
+
+`docker image prune -a` và `docker volume prune` xoá nhiều hơn hẳn (mọi image không chạy, mọi volume
+không gắn container — kể cả dữ liệu của SigNoz khi SigNoz đang tắt): đọc kỹ trước khi chạy. Sau khi dọn,
+file `.vhdx` vẫn giữ nguyên kích thước; muốn trả dung lượng lại cho Windows thì thu gọn (compact) nó
+theo hướng dẫn của Microsoft: https://learn.microsoft.com/windows/wsl/disk-space (cần quyền admin).
 
 ---
 

@@ -8,7 +8,7 @@
  *
  * Một lần POST thành công sinh ra một trace khoảng 15 span, trải qua 2 service: các bước nghiệp vụ
  * (span tự tạo), các câu SQL (span DB giả lập), lời gọi HTTP sang payment-service (span của fetch),
- * rồi các span bên trong payment-service. Sơ đồ cây đầy đủ có trong README, mục "Đọc một trace".
+ * rồi các span bên trong payment-service. Sơ đồ cây đầy đủ có trong docs/README.md, mục "Đọc một trace".
  */
 
 const express = require('express');
