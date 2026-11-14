@@ -1,0 +1,45 @@
+{
+  "name": "playwright-claude-example",
+  "version": "1.0.0",
+  "description": "Ví dụ Playwright với Claude: cấu hình Playwright MCP cho Claude Code và các test @playwright/test (tiêu đề, form, locator, auto-waiting, screenshot, E2E) chạy trên một web app mẫu",
+  "type": "commonjs",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "serve": "node src/server.js",
+    "test": "playwright test --project=chromium --grep-invert @visual",
+    "test:all-browsers": "playwright test --grep-invert @visual",
+    "test:01": "playwright test 01-title --project=chromium",
+    "test:02": "playwright test 02-form --project=chromium",
+    "test:03": "playwright test 03-locators-waiting --project=chromium",
+    "test:04": "playwright test 04-screenshot --project=chromium --grep-invert @visual",
+    "test:05": "playwright test 05-e2e-checkout --project=chromium",
+    "test:headed": "playwright test --project=chromium --grep-invert @visual --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --project=chromium --debug",
+    "test:visual": "playwright test --project=chromium --grep @visual",
+    "test:visual:update": "playwright test --project=chromium --grep @visual --update-snapshots",
+    "report": "playwright show-report",
+    "codegen": "playwright codegen http://localhost:3151",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "playwright",
+    "e2e",
+    "testing",
+    "mcp",
+    "claude",
+    "claude-code",
+    "typescript",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^22.20.5",
+    "typescript": "^7.0.2"
+  }
+}

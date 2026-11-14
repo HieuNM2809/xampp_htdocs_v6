@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sản phẩm — Mini Shop</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">Mini Shop</a>
+    <nav aria-label="Menu chính">
+      <a href="/">Trang chủ</a>
+      <a href="/products" aria-current="page">Sản phẩm</a>
+      <a href="/contact">Liên hệ</a>
+      <a href="/cart">Giỏ hàng (<span data-cart-count>0</span>)</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Sản phẩm</h1>
+
+    <form id="search-form" class="toolbar" role="search" aria-label="Tìm kiếm sản phẩm">
+      <div class="field">
+        <label for="search">Tìm sản phẩm</label>
+        <input id="search" name="q" type="search" placeholder="Ví dụ: kem chống nắng" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="category">Danh mục</label>
+        <select id="category" name="category">
+          <option value="">Tất cả</option>
+          <option>Làm sạch</option>
+          <option>Dưỡng da</option>
+          <option>Chống nắng</option>
+          <option>Mặt nạ</option>
+        </select>
+      </div>
+    </form>
+
+    <!-- aria-live thay vì role="status": trang chỉ có một role="status" là thông báo (toast) -->
+    <p id="list-summary" class="muted" aria-live="polite">Đang tải sản phẩm...</p>
+
+    <div id="load-error" class="alert" role="alert" hidden>
+      Không tải được danh sách sản phẩm.
+      <button type="button" id="retry">Thử lại</button>
+    </div>
+
+    <ul id="product-list" class="product-list" aria-label="Danh sách sản phẩm"></ul>
+  </main>
+
+  <div id="toast" class="toast" role="status" data-testid="toast" hidden></div>
+
+  <template id="product-card">
+    <li class="card">
+      <h2></h2>
+      <p class="category muted"></p>
+      <p class="price"></p>
+      <button type="button">Thêm vào giỏ</button>
+    </li>
+  </template>
+
+  <script type="module" src="/js/products.js"></script>
+</body>
+</html>

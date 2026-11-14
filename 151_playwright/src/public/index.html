@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Web app mẫu để thực hành Playwright và Playwright MCP">
+  <title>Mini Shop — Playwright Demo</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">Mini Shop</a>
+    <nav aria-label="Menu chính">
+      <a href="/" aria-current="page">Trang chủ</a>
+      <a href="/products">Sản phẩm</a>
+      <a href="/contact">Liên hệ</a>
+      <a href="/cart">Giỏ hàng (<span data-cart-count>0</span>)</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Chào mừng đến Mini Shop</h1>
+    <p class="lead">
+      Cửa hàng mỹ phẩm giả lập để thực hành Playwright: điều hướng, form, danh sách tải bất đồng bộ,
+      giỏ hàng và đặt hàng. Không có giao dịch thật nào ở đây.
+    </p>
+    <a class="button" href="/products">Xem sản phẩm</a>
+
+    <section aria-labelledby="try-title">
+      <h2 id="try-title">Có gì để thử</h2>
+      <ul class="feature-list">
+        <li><strong>Sản phẩm</strong>: tìm kiếm có debounce, lọc danh mục, API trả về chậm có chủ đích.</li>
+        <li><strong>Liên hệ</strong>: form có kiểm tra dữ liệu, thông báo lỗi cạnh từng ô.</li>
+        <li><strong>Giỏ hàng</strong>: đổi số lượng, xoá có hộp thoại xác nhận, đặt hàng qua API.</li>
+      </ul>
+    </section>
+
+    <p class="muted" data-testid="visit-time">Bạn mở trang lúc <time></time></p>
+  </main>
+
+  <footer class="site-footer">Mini Shop — dữ liệu mẫu cho thư mục 151_playwright.</footer>
+  <script type="module" src="/js/home.js"></script>
+</body>
+</html>

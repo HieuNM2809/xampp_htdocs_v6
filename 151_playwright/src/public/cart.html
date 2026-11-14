@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Giỏ hàng — Mini Shop</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">Mini Shop</a>
+    <nav aria-label="Menu chính">
+      <a href="/">Trang chủ</a>
+      <a href="/products">Sản phẩm</a>
+      <a href="/contact">Liên hệ</a>
+      <a href="/cart" aria-current="page">Giỏ hàng (<span data-cart-count>0</span>)</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Giỏ hàng</h1>
+
+    <p id="cart-empty" hidden>Giỏ hàng đang trống. <a href="/products">Xem sản phẩm</a></p>
+
+    <div id="cart-content" hidden>
+      <table id="cart-table" aria-label="Sản phẩm trong giỏ">
+        <thead>
+          <tr>
+            <th scope="col">Sản phẩm</th>
+            <th scope="col">Đơn giá</th>
+            <th scope="col">Số lượng</th>
+            <th scope="col">Thành tiền</th>
+            <th scope="col"><span class="visually-hidden">Thao tác</span></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr>
+            <th scope="row" colspan="3">Tổng cộng</th>
+            <td colspan="2" data-testid="cart-total"></td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <form id="checkout-form" aria-label="Thông tin giao hàng" novalidate>
+        <h2>Thông tin giao hàng</h2>
+        <div class="field">
+          <label for="name">Người nhận</label>
+          <input id="name" name="name" autocomplete="name" aria-describedby="name-error">
+          <p class="error" id="name-error" hidden></p>
+        </div>
+        <div class="field">
+          <label for="phone">Số điện thoại</label>
+          <input id="phone" name="phone" type="tel" autocomplete="tel" aria-describedby="phone-error">
+          <p class="error" id="phone-error" hidden></p>
+        </div>
+        <div class="field">
+          <label for="address">Địa chỉ giao hàng</label>
+          <textarea id="address" name="address" rows="2" autocomplete="street-address" aria-describedby="address-error"></textarea>
+          <p class="error" id="address-error" hidden></p>
+        </div>
+        <fieldset class="field">
+          <legend>Phương thức thanh toán</legend>
+          <label class="inline"><input type="radio" name="paymentMethod" value="cod" checked> Thanh toán khi nhận hàng (COD)</label>
+          <label class="inline"><input type="radio" name="paymentMethod" value="bank"> Chuyển khoản ngân hàng</label>
+        </fieldset>
+        <p id="order-error" class="alert" role="alert" hidden></p>
+        <button type="submit">Đặt hàng</button>
+      </form>
+    </div>
+
+    <section id="order-success" class="success" role="status" hidden>
+      <h2>Đặt hàng thành công</h2>
+      <p>Mã đơn hàng: <strong data-testid="order-id"></strong></p>
+      <p>Tổng thanh toán: <strong data-testid="order-total"></strong></p>
+      <a href="/products">Tiếp tục mua sắm</a>
+    </section>
+  </main>
+
+  <template id="cart-row">
+    <tr>
+      <td class="name"></td>
+      <td class="price"></td>
+      <td>
+        <span class="quantity">
+          <button type="button" class="decrease">−</button>
+          <span data-testid="quantity"></span>
+          <button type="button" class="increase">+</button>
+        </span>
+      </td>
+      <td class="line-total"></td>
+      <td><button type="button" class="remove link-button">Xoá</button></td>
+    </tr>
+  </template>
+
+  <script type="module" src="/js/cart.js"></script>
+</body>
+</html>
