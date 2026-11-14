@@ -1,0 +1,16 @@
+node_modules/
+*.log
+
+# Kết quả Playwright sinh ra mỗi lần chạy test
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/screenshots/
+
+# Ảnh chuẩn của nhóm @visual phụ thuộc hệ điều hành và font của từng máy: mỗi máy tự tạo bằng
+# "npm run test:visual:update". Dự án thật thường tạo ảnh chuẩn trong Docker/CI rồi commit lên.
+/tests/*-snapshots/
+
+# File Playwright MCP ghi ra khi Claude chụp màn hình, lưu snapshot... (thư mục output mặc định)
+/.playwright-mcp/

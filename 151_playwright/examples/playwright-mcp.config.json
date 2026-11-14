@@ -1,0 +1,25 @@
+{
+  "browser": {
+    "browserName": "chromium",
+    "isolated": true,
+    "launchOptions": {
+      "channel": "chrome",
+      "headless": false
+    },
+    "contextOptions": {
+      "viewport": { "width": 1280, "height": 720 },
+      "locale": "vi-VN",
+      "timezoneId": "Asia/Ho_Chi_Minh"
+    }
+  },
+  "network": {
+    "allowedOrigins": ["http://localhost:*", "http://127.0.0.1:*"]
+  },
+  "capabilities": ["pdf"],
+  "timeouts": {
+    "action": 5000,
+    "navigation": 30000
+  },
+  "console": { "level": "warning" },
+  "testIdAttribute": "data-testid"
+}

@@ -1,0 +1,114 @@
+/* Giao diện tối giản cho web app mẫu. Không ảnh hưởng tới cách test hoạt động. */
+:root {
+  --brand: #0f766e;
+  --brand-dark: #115e59;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --danger: #b91c1c;
+  --radius: 10px;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  color: var(--text);
+  background: #f9fafb;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; line-height: 1.5; }
+/* Thuộc tính hidden phải thắng mọi display khác (.card, .toast...) */
+[hidden] { display: none !important; }
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+}
+.logo { font-size: 1.25rem; font-weight: 700; color: var(--brand); text-decoration: none; }
+.site-header nav { display: flex; flex-wrap: wrap; gap: 1.25rem; }
+.site-header nav a { color: var(--text); text-decoration: none; padding: 0.25rem 0; }
+.site-header nav a[aria-current='page'] { color: var(--brand); font-weight: 600; border-bottom: 2px solid var(--brand); }
+
+main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+main.narrow { max-width: 560px; }
+.lead { font-size: 1.1rem; }
+.muted { color: var(--muted); }
+.feature-list li { margin-bottom: 0.25rem; }
+.site-footer { padding: 1.5rem; text-align: center; color: var(--muted); font-size: 0.875rem; }
+
+button, .button {
+  display: inline-block;
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--brand);
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+}
+button:hover, .button:hover { background: var(--brand-dark); }
+button:disabled { background: #9ca3af; cursor: not-allowed; }
+.link-button { background: none; color: var(--danger); padding: 0.25rem; }
+.link-button:hover { background: none; text-decoration: underline; }
+:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 1rem; }
+.field { display: flex; flex-direction: column; gap: 0.25rem; margin: 0 0 1rem; }
+fieldset.field { border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; }
+label.inline { display: flex; align-items: center; gap: 0.5rem; }
+input, select, textarea { font: inherit; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; }
+[aria-invalid='true'] { border-color: var(--danger); outline-color: var(--danger); }
+.error { margin: 0; color: var(--danger); font-size: 0.875rem; }
+
+.product-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.card h2 { margin: 0; font-size: 1rem; }
+.card p { margin: 0; }
+.card button { margin-top: auto; }
+.price { font-weight: 700; color: var(--brand-dark); }
+
+table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; background: #fff; }
+th, td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); text-align: left; }
+tfoot th, tfoot td { font-weight: 700; }
+.quantity { display: inline-flex; align-items: center; gap: 0.5rem; }
+.quantity button { padding: 0.125rem 0.625rem; }
+
+.alert { padding: 0.75rem 1rem; color: var(--danger); background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; }
+.success { padding: 1rem 1.25rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius); }
+/* pointer-events: none để thông báo không che mất nút nằm bên dưới */
+.toast {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  color: #fff;
+  background: #111827;
+  border-radius: 8px;
+  pointer-events: none;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

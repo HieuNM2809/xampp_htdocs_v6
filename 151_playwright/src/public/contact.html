@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Liên hệ — Mini Shop</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">Mini Shop</a>
+    <nav aria-label="Menu chính">
+      <a href="/">Trang chủ</a>
+      <a href="/products">Sản phẩm</a>
+      <a href="/contact" aria-current="page">Liên hệ</a>
+      <a href="/cart">Giỏ hàng (<span data-cart-count>0</span>)</a>
+    </nav>
+  </header>
+
+  <main class="narrow">
+    <h1>Liên hệ</h1>
+
+    <!-- novalidate: tắt bong bóng lỗi mặc định của trình duyệt, JS tự hiện lỗi ngay trong trang -->
+    <form id="contact-form" aria-label="Form liên hệ" novalidate>
+      <div class="field">
+        <label for="name">Họ và tên</label>
+        <input id="name" name="name" autocomplete="name" aria-describedby="name-error">
+        <p class="error" id="name-error" hidden></p>
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" aria-describedby="email-error">
+        <p class="error" id="email-error" hidden></p>
+      </div>
+
+      <div class="field">
+        <label for="phone">Số điện thoại</label>
+        <input id="phone" name="phone" type="tel" autocomplete="tel" aria-describedby="phone-error">
+        <p class="error" id="phone-error" hidden></p>
+      </div>
+
+      <div class="field">
+        <label for="topic">Chủ đề</label>
+        <select id="topic" name="topic" aria-describedby="topic-error">
+          <option value="">-- Chọn chủ đề --</option>
+          <option value="product">Tư vấn sản phẩm</option>
+          <option value="order">Đơn hàng</option>
+          <option value="other">Khác</option>
+        </select>
+        <p class="error" id="topic-error" hidden></p>
+      </div>
+
+      <fieldset class="field">
+        <legend>Liên hệ lại qua</legend>
+        <label class="inline"><input type="radio" name="contactMethod" value="email" checked> Email</label>
+        <label class="inline"><input type="radio" name="contactMethod" value="phone"> Điện thoại</label>
+      </fieldset>
+
+      <div class="field">
+        <label for="message">Nội dung</label>
+        <textarea id="message" name="message" rows="4" aria-describedby="message-error"></textarea>
+        <p class="error" id="message-error" hidden></p>
+      </div>
+
+      <div class="field">
+        <label class="inline">
+          <input type="checkbox" id="agree" name="agree" aria-describedby="agree-error">
+          Tôi đồng ý để Mini Shop lưu thông tin liên hệ
+        </label>
+        <p class="error" id="agree-error" hidden></p>
+      </div>
+
+      <p id="contact-failure" class="alert" role="alert" hidden>Gửi không thành công, vui lòng thử lại.</p>
+      <button type="submit">Gửi liên hệ</button>
+    </form>
+
+    <section id="contact-success" class="success" role="status" hidden>
+      <h2>Đã gửi liên hệ</h2>
+      <p>Cảm ơn <strong data-name></strong>! Chúng tôi sẽ phản hồi trong vòng 24 giờ.</p>
+      <a href="/contact">Gửi liên hệ khác</a>
+    </section>
+  </main>
+
+  <script type="module" src="/js/contact.js"></script>
+</body>
+</html>
