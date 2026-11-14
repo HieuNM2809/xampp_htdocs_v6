@@ -29,8 +29,20 @@
             </TabSessionState>
           </value>
         </entry>
+        <entry key="2">
+          <value>
+            <TabSessionState>
+              <option name="projectPath" value="D:\HieuNM\xampp_htdocs_v6" />
+              <option name="provider" value="claude" />
+              <option name="cwd" value="D:\HieuNM\xampp_htdocs_v6" />
+              <option name="model" value="claude-opus-5-5[1m]" />
+              <option name="permissionMode" value="bypassPermissions" />
+              <option name="reasoningEffort" value="max" />
+            </TabSessionState>
+          </value>
+        </entry>
       </map>
     </option>
-    <option name="tabCount" value="2" />
+    <option name="tabCount" value="3" />
   </component>
 </project>
