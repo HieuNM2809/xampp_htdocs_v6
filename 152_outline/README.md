@@ -34,11 +34,12 @@ Viết ngày 16/11/2026 cho các phiên bản:
 | Dex | `ghcr.io/dexidp/dex` | v2.46.1 |
 | Mailpit | `axllent/mailpit` | v1.33.1 |
 
-> **Mức độ kiểm chứng.** Cấu hình được đối chiếu trực tiếp với mã nguồn của đúng các phiên bản trên: biến
-> môi trường (`server/env.ts` và `plugins/*/server/env.ts` của Outline 1.13.0), luồng đăng nhập OIDC, cơ chế
-> migration, các trang Settings, định dạng cấu hình của Dex v2.46.1. `docker compose config` chạy hợp lệ
-> trên Docker Compose v2.40.3. **Chưa chạy end-to-end**: lúc viết, Docker Desktop trên máy thử bị treo vì ổ
-> C: hết chỗ (mục 11.10). Chỗ nào log thật khác README thì tin log và sửa README theo.
+> **Mức độ kiểm chứng.** Đã chạy end-to-end ngày 16/11/2026 trên Windows 11, Docker Desktop 4.99.0 (Engine
+> 29.9.3, Compose v5.7.0): khởi chạy, migration (tự động và chạy tay với `--no-migrate`), đăng nhập qua Dex,
+> tạo collection và tài liệu, tải file đính kèm, soạn realtime, mời thành viên (cả hai cách ở mục 9.3),
+> *Allowed domains*, backup/restore trên cùng máy và sang máy mới, các thông báo lỗi ở mục 11. Log, thông
+> báo lỗi và các nhãn giao diện chính trong README chép từ lần chạy đó. Chỗ nào log thật khác README thì tin
+> log và sửa README theo.
 
 ---
 
@@ -126,7 +127,7 @@ Ngoài ra có service `backup` (image alpine) chỉ chạy khi gọi tên, dùng
  ③ GET /auth/oidc.callback ──────►  ④ POST http://dex:5556/dex/token ───►  đổi code lấy token
                                     ⑤ GET  http://dex:5556/dex/userinfo ►  email, name, email_verified
                                     ⑥ tạo workspace (lần đầu) và user, đặt cookie đăng nhập
-   ◄──── 302 → /home: đã đăng nhập
+   ◄──── 302 → collection đầu tiên (lần đăng nhập đầu) hoặc /home: đã đăng nhập
 ```
 
 Cùng một Dex nhưng có **hai địa chỉ**, tuỳ ai gửi request:
@@ -174,9 +175,9 @@ Ba volume do Docker quản lý (xem bằng `docker volume ls`): `outline-wiki_ou
 
 ## 4. Yêu cầu
 
-- **Docker** có **Compose v2**: Docker Desktop trên Windows/macOS, Docker Engine trên Linux. Kiểm tra bằng
-  `docker compose version` (máy viết tài liệu: v2.40.3; cần bản hỗ trợ `depends_on: condition` và
-  `profiles`, tức mọi bản Compose v2 hiện hành).
+- **Docker** có **Compose v2 trở lên** (lệnh `docker compose`, không phải `docker-compose` bản cũ): Docker
+  Desktop trên Windows/macOS, Docker Engine trên Linux. Kiểm tra bằng `docker compose version` (máy thử:
+  v5.7.0; cần bản hỗ trợ `depends_on: condition` và `profiles`, mọi bản từ v2 trở lên đều có).
 - **RAM cho Docker ≥ 2 GB.** Outline ước khoảng 512 MB cho mỗi process web (`WEB_CONCURRENCY=1`), cộng
   PostgreSQL, Redis, Dex, Mailpit.
 - **Ổ đĩa:** image tải về khoảng 520 MB (dạng nén: Outline 257 MB, PostgreSQL 161 MB, phần còn lại
@@ -308,18 +309,20 @@ phương thức. Outline nhận ra cùng một người qua email (khi IdP xác 
    đang làm với Dex.
 4. Xoá service `dex` khỏi `docker-compose.yml` nếu không dùng nữa.
 
-**Không dùng SSO, chỉ đăng nhập bằng email.** Theo mã nguồn Outline 1.13: khi không có phương thức SSO nào
+**Không dùng SSO, chỉ đăng nhập bằng email.** Đã thử với Outline 1.13: khi không có phương thức SSO nào
 (xoá hết `OIDC_*`) và chưa có workspace, lần đầu mở Outline sẽ hiện form **Create workspace** (*Workspace
-name*, *Admin name*, *Admin email*). Gửi form là tạo workspace và đăng nhập luôn bằng tài khoản admin đó. Về
-sau đăng nhập bằng link gửi qua email, nên **bắt buộc có SMTP**. Không có SMTP thì sau khi đăng xuất sẽ không
-vào lại được, trừ khi đã tạo passkey.
+name*, *Admin name*, *Admin email*). Bấm **Continue →** là tạo workspace và đăng nhập luôn bằng tài khoản
+admin đó. Về sau đăng nhập bằng link gửi qua email, nên **bắt buộc có SMTP**. Không có SMTP thì sau khi đăng
+xuất sẽ không vào lại được, trừ khi đã tạo passkey.
 
 ### 5.5 Email (SMTP)
 
 Demo gửi mọi email vào **Mailpit** (`SMTP_HOST=mailpit`, `SMTP_PORT=1025`, `SMTP_SECURE=false`): không email
 nào ra Internet, đọc tại **http://localhost:8025**. Outline gửi email khi:
 
+- một người đăng nhập lần đầu: "*Welcome to Outline!*", gửi cho chính người đó;
 - mời thành viên: tiêu đề "*Admin Demo invited you to join Outline’s workspace*", nút **Join now**;
+- người được mời đã vào workspace: "*Member Demo has joined your Outline team*", gửi cho người mời;
 - đăng nhập bằng email: tiêu đề "*Magic Sign-in Link*", nút **Sign In**;
 - có thông báo (được nhắc tên, bình luận, tài liệu theo dõi thay đổi...) theo cài đặt của từng người ở
   *Settings → Notifications*;
@@ -330,8 +333,9 @@ nối (kiểu cổng 465). Dùng SMTP thật thì xem các mẫu đang để com
 (`SMTP_SERVICE=Gmail`, SendGrid, Mailgun, SES...) hoặc mail server riêng (`SMTP_HOST`, `SMTP_PORT=465`,
 `SMTP_SECURE=true`).
 
-Có SMTP thì trang đăng nhập có thêm ô email kèm nút **Continue with Email** (bật/tắt ở *Settings →
-Authentication → Email*). Hai lưu ý rút ra từ mã nguồn (`plugins/email/server/auth/email.ts`):
+Có SMTP thì, từ khi đã có workspace, trang đăng nhập có thêm nút **Continue with Email** (bật/tắt ở
+*Settings → Authentication → Email*). Bấm vào mới hiện ô nhập email và nút **Sign In →**. Hai lưu ý rút ra từ
+mã nguồn (`plugins/email/server/auth/email.ts`), đã thử đúng như vậy:
 
 - Chỉ người **đã được mời hoặc đã có tài khoản** mới nhận được link; email lạ không nhận gì, dù màn hình
   vẫn báo "*Check your email*".
@@ -406,12 +410,16 @@ Với `NODE_ENV=production`, mỗi dòng log của Outline là một object JSON
 
 | `message` | `label` | Ý nghĩa |
 |---|---|---|
-| `Running migrations…` | `database` | Đang chạy migration; chỉ xuất hiện khi có migration mới |
+| `Running migrations…` | `database` | Đang chạy migration; chỉ xuất hiện khi có migration mới. Theo sau là mỗi file một cặp `Migrating <tên>.js…` / `Migrated <tên>.js in 0.005s` (lần đầu: 49 file) |
 | `OIDC plugin registered`, `OIDC endpoints mounted with manual configuration` | `plugins` | Đăng nhập OIDC (Dex) đã bật |
 | `Enforced https was disabled with FORCE_HTTPS env variable` | (warn) | Bình thường khi chạy http |
 | `Starting web service`, `Starting worker service`... | `lifecycle` | Các dịch vụ con khởi động |
 | `Listening on http://localhost:3000 / http://localhost:3500` | `lifecycle` | Sẵn sàng; vế sau dấu `/` là `URL` |
 | `Sending email "…" to …` | `email` | Outline gửi email: mở Mailpit để xem |
+
+Vài dòng không phải JSON cũng là bình thường, bỏ qua được: `ExperimentalWarning: localStorage is not
+available because --localstorage-file was not provided` (cảnh báo của Node 26, mỗi process một lần) và
+`responseMode: 'json' drops mid-call notifications...`.
 
 Lọc log:
 
@@ -465,7 +473,9 @@ Thấy `Running migrations…` rồi tới `Listening on ...` là xong.
 docker compose exec outline node node_modules/sequelize-cli/lib/sequelize db:migrate:status --env=production-ssl-disabled
 ```
 
-Mỗi migration một dòng: `up <tên-file>.js` là đã chạy, `down` là chưa. Xem các bảng đã tạo:
+Mỗi migration một dòng: `up <tên-file>.js` là đã chạy, `down` là chưa (Outline 1.13.0: 319 dòng `up`). Dòng
+đầu `☠ [MISSING_ENV_FILE] missing file (.env)` là bình thường: biến môi trường đã do Docker nạp vào
+container, trong container không có (và không cần) file `.env`. Xem các bảng đã tạo:
 
 ```bash
 docker compose exec postgres psql -U outline -d outline -c '\dt'
@@ -489,16 +499,20 @@ Dùng khi muốn tự quyết thời điểm migration, ví dụ backup ngay tr�
    docker compose run --rm outline node node_modules/sequelize-cli/lib/sequelize db:migrate --env=production-ssl-disabled
    ```
 
+   Database còn trống thì chạy hết migration; không còn gì để chạy thì in
+   `No migrations were executed, database schema was already up to date.`
+
 3. `docker compose up -d`.
 
 Quên bước 2 thì Outline từ chối khởi động, log có dòng: *Database migrations are pending and were not run
 because the --no-migrate flag was passed. Run the migrations with "yarn db:migrate".*
 
-> **Đừng làm theo các hướng dẫn cũ dùng `yarn`.** Nhiều bài viết ghi
-> `docker compose run --rm outline yarn db:migrate --env=production-ssl-disabled`. Image Outline 1.x dựng
-> trên `node:26-slim`, mà image Node 26 không còn kèm Yarn, nên Docker báo
-> `exec: "yarn": executable file not found in $PATH`. Script `db:migrate` trong `package.json` cũng chỉ là
-> `sequelize db:migrate`, nên gọi thẳng sequelize-cli bằng `node` như trên là tương đương.
+> **Đừng làm theo các hướng dẫn cũ dùng `yarn`**, kể cả gợi ý `yarn db:migrate` trong chính thông báo lỗi ở
+> trên. Nhiều bài viết ghi `docker compose run --rm outline yarn db:migrate --env=production-ssl-disabled`.
+> Image Outline 1.13 dựng trên `node:26-slim`, mà image Node 26 không còn kèm Yarn. Lỗi hiện ra khó hiểu:
+> `Error: Cannot find module '/opt/outline/yarn'`, vì `docker-entrypoint.sh` của image thấy `yarn` không
+> phải lệnh có sẵn nên chạy thành `node yarn db:migrate ...`. Script `db:migrate` trong `package.json` cũng
+> chỉ là `sequelize db:migrate`, nên gọi thẳng sequelize-cli bằng `node` như trên là tương đương.
 
 ### 7.4 Nâng cấp phiên bản Outline
 
@@ -529,7 +543,8 @@ Phải `pg_dump` bằng bản cũ rồi restore vào bản mới (mục 10.2, 10
    `admin@example.com` / `password`.
 4. Dex chuyển về Outline. Chưa có workspace nào nên Outline tạo workspace tên **Outline**; tài khoản
    **Admin Demo** là **Admin**. Outline tạo sẵn collection **Welcome** gồm 4 tài liệu hướng dẫn: *What is
-   Outline*, *Getting Started*, *Our Editor*, *Integrations & API*.
+   Outline*, *Getting Started*, *Our Editor*, *Integrations & API*, rồi mở luôn collection này (từ lần đăng
+   nhập sau, khi đã xem tài liệu nào đó, Outline đưa vào **Home**). Mailpit nhận email *Welcome to Outline!*.
 
 Workspace được tạo bởi **người đăng nhập đầu tiên**, và người đó là Admin. Lỡ đăng nhập bằng
 `member@example.com` trước thì member thành Admin. Muốn làm lại: `docker compose down -v`, rồi
@@ -546,7 +561,7 @@ Menu **Settings** của Outline 1.13 (đường dẫn `/settings/...`):
 
 | Nhóm | Mục | Dùng để |
 |---|---|---|
-| Account | Profile, Preferences, Notifications, API & Access | Hồ sơ, ngôn ngữ, thông báo email, token cá nhân |
+| Account | Profile, Preferences, Notifications, Passkeys, API & Access | Hồ sơ, ngôn ngữ, thông báo email, passkey, API key cá nhân |
 | Workspace | **General** (Chung) | Tên, logo workspace |
 | | **Users** (Người dùng) | Danh sách thành viên, **Invite people**, đổi vai trò, treo tài khoản |
 | | **Groups** (Nhóm) | Nhóm người dùng để phân quyền collection |
@@ -554,7 +569,8 @@ Menu **Settings** của Outline 1.13 (đường dẫn `/settings/...`):
 | | **Security** (Bảo mật) | *Default role*, chia sẻ công khai, ai được tạo collection, bình luận... |
 | | Templates, Emojis, AI, Shared links | Mẫu tài liệu, emoji riêng, tính năng AI, danh sách link chia sẻ công khai |
 | | **Import** (Nhập), **Export** (Xuất) | Nhập/xuất dữ liệu cả workspace (mục 10.5) |
-| Integrations, Developer | Embeds..., API keys, Applications | Tích hợp, API |
+| Integrations | Embeds, Install… | Nhúng nội dung, cài thêm tích hợp |
+| Developer | Applications, Webhooks | Ứng dụng dùng API của Outline, webhook |
 
 ### 8.3 Đăng xuất và đăng nhập tài khoản khác
 
@@ -575,7 +591,8 @@ Collection là nhóm tài liệu (ví dụ "Kỹ thuật", "Nhân sự", "Quy tr
 1. Thanh bên trái, mục **Collections** → dấu **+** (hoặc dòng **New collection** ở cuối danh sách).
 2. Hộp thoại **Create a collection**:
    - **Name**: tên collection; bấm biểu tượng bên trái tên để chọn icon và màu.
-   - **Permission** (*Phân quyền*): quyền mặc định của mọi thành viên workspace với collection này:
+   - **Permission** (*Phân quyền*): quyền mặc định của mọi thành viên workspace với collection này. Hộp
+     thoại để sẵn **No access**: giữ nguyên thì collection là riêng tư, thành viên khác không thấy.
 
      | Lựa chọn | Ý nghĩa |
      |---|---|
@@ -583,8 +600,9 @@ Collection là nhóm tài liệu (ví dụ "Kỹ thuật", "Nhân sự", "Quy tr
      | **View only** | Mọi thành viên chỉ đọc |
      | **No access** | Collection riêng tư: chỉ người hoặc nhóm được thêm vào mới thấy |
 
-   - **Advanced options**: bật/tắt **Commenting** (bình luận), **Public document sharing** (cho phép chia
-     sẻ tài liệu ra ngoài bằng link công khai).
+   - **Advanced options**: **Manage templates** (ai được tạo và sửa mẫu tài liệu: *Managers* hay *Members*),
+     bật/tắt **Public document sharing** (cho phép chia sẻ tài liệu ra ngoài bằng link công khai) và
+     **Commenting** (bình luận).
 3. Bấm **Create**.
 
 Đổi quyền về sau: menu **⋯** của collection → **Permissions**: thêm từng người hoặc cả nhóm (*Settings →
@@ -612,12 +630,15 @@ Groups* → **New group**) với quyền riêng. Collection **Welcome** tạo s�
 
    Dán hoặc kéo thả ảnh/file vào trang là tải lên volume `outline-data` (giới hạn 250 MB mỗi file, đặt bằng
    `FILE_STORAGE_UPLOAD_MAX_SIZE`).
-4. Nội dung tự lưu liên tục. Tài liệu mới là **bản nháp** (nằm trong **Drafts**), người khác chưa thấy; bấm
-   **Publish** để đăng vào collection.
-5. Các thao tác hay dùng trong menu **⋯** của tài liệu: **New nested document** (tài liệu con, tạo cây
-   tài liệu), **History** (xem và khôi phục các phiên bản cũ), **Move**, **Duplicate**, **Download**.
-6. **Share**: mời thêm người vào riêng tài liệu này, hoặc bật **Publish to internet** để ai có link cũng
-   đọc được (collection phải bật *Public document sharing*).
+4. Nội dung tự lưu liên tục. Tạo bằng **New doc** bên trong collection thì tài liệu được đăng vào collection
+   **ngay lúc tạo**: ai có quyền với collection đều thấy, kể cả khi mới gõ dở. Muốn soạn riêng cho xong rồi
+   mới đăng thì bấm **New doc** ở trang **Home**: tài liệu là **bản nháp** (nằm trong **Drafts**, chưa thuộc
+   collection nào). Soạn xong bấm **Publish…** (nút bị mờ khi tài liệu còn trống) và chọn collection.
+5. Các thao tác hay dùng trong menu **⋯** của tài liệu: **New document → Nested document** (tài liệu con,
+   tạo cây tài liệu), **History** (xem và khôi phục các phiên bản cũ), **Move**, **Duplicate…**, **Export**
+   (tải về dạng Markdown, HTML...).
+6. **Share**: mời thêm người vào riêng tài liệu này, hoặc bật **Publish to web** để ai có link cũng đọc được
+   (collection phải bật *Public document sharing*).
 
 Thử soạn realtime: mở cùng tài liệu ở cửa sổ ẩn danh bằng tài khoản thứ hai (mục 9.3), gõ ở một bên thì bên
 kia thấy ngay. Đó là dịch vụ `collaboration` chạy qua WebSocket.
@@ -641,19 +662,20 @@ vào một collection là nhập thành tài liệu; menu **⋯** của collecti
 
    - Nhập **Email** `member@example.com`, **Name** `Member Demo` (**Add another** để mời thêm người)
      → **Send invites**.
-3. Trong **Settings → Users**, `member@example.com` hiện trạng thái **Invited**.
+3. Trong **Settings → Users**, đổi bộ lọc trạng thái từ **Active** (mặc định, chưa hiện người được mời) sang
+   **Invited** hoặc **Any status**: `member@example.com` hiện trạng thái **Invited**.
 4. Mở Mailpit (http://localhost:8025): email "*Admin Demo invited you to join Outline’s workspace*". Nút
    **Join now** dẫn về trang đăng nhập của Outline.
 5. Mở link đó trong **cửa sổ ẩn danh** → **Continue with Dex** → `member@example.com` / `password`.
-6. Member vào workspace với vai trò đã chọn. Bên admin, trạng thái *Invited* mất đi, và admin nhận thêm một
-   email báo lời mời đã được chấp nhận.
+6. Member vào workspace với vai trò đã chọn. Bên admin, trạng thái *Invited* mất đi, và admin nhận email
+   *Member Demo has joined your Outline team*.
 
 **Cách B: người được mời không có tài khoản SSO** (đăng nhập bằng email, cần SMTP)
 
 1. Mời một email bất kỳ, ví dụ `an.nguyen@congty.vn`. Mailpit giữ lại mọi email nên không cần hộp thư
    thật.
-2. Cửa sổ ẩn danh → http://localhost:3500 → nhập `an.nguyen@congty.vn` vào ô email → **Continue with Email**
-   → màn hình *Check your email*.
+2. Cửa sổ ẩn danh → http://localhost:3500 → **Continue with Email** → nhập `an.nguyen@congty.vn` vào ô email
+   → **Sign In →** → màn hình *Check your email*.
 3. Mailpit: email **Magic Sign-in Link** → bấm **Sign In** → vào workspace.
 
 **Quản lý thành viên:** *Settings → Users*, menu của từng người có **Change role**, **Suspend user** (khoá
@@ -667,7 +689,9 @@ quyền truy cập), **Resend invite** (với người chưa nhận lời mời)
 - **Allowed domains** (*Settings → Authentication*, phần *Restrictions*): chỉ email thuộc các tên miền này
   mới được tự tạo tài khoản, ví dụ `congty.vn`. Người đã được mời và người đã có tài khoản vẫn vào được.
   Thử trước khi làm cách A: thêm `congty.vn`, rồi đăng nhập Dex bằng `member@example.com` (chưa được mời):
-  bị từ chối vì `example.com` không nằm trong danh sách.
+  bị đưa về trang đăng nhập với dòng *The domain associated with your email address has not been allowed
+  for this workspace.* Mời `member@example.com` (cách A) rồi đăng nhập lại thì vào được, dù danh sách vẫn chỉ
+  có `congty.vn`.
 - Cách chắc nhất: chỉ cấp tài khoản IdP cho người cần dùng; tài khoản bị khoá ở IdP thì không đăng nhập
   Outline được nữa.
 - Mời hoặc ghép tài khoản qua tên miền chỉ chạy khi IdP xác nhận email đã xác minh (`email_verified: true`;
@@ -702,6 +726,7 @@ docker compose exec -T postgres sh -c 'pg_restore -l /backups/outline-db_2026111
 ```
 
 - Không cần dừng Outline khi backup: `pg_dump` đọc một snapshot nhất quán của database.
+- Tên file chính xác tới phút: chạy lại trong cùng một phút thì ghi đè bản vừa tạo.
 - Mọi lệnh nằm trong dấu nháy đơn `'...'`, nên `$POSTGRES_USER`, `$POSTGRES_DB`, `$(date ...)` được tính
   **bên trong container**: biến lấy từ service postgres, giờ là giờ UTC. Nhờ vậy cùng một dòng lệnh chạy
   được trong bash, Git Bash và PowerShell 5.1/7. Git Bash cũng không tự đổi `/backups` thành
@@ -729,7 +754,11 @@ docker compose run --rm backup sh -c 'find /data -mindepth 1 -delete && tar xzf 
 docker compose start outline
 ```
 
-Quên bước 1 thì `dropdb` báo `database "outline" is being accessed by other users`.
+**Đừng bỏ bước 1.** Outline đóng các kết nối database rảnh sau 10 giây, nên lúc không ai dùng thì `dropdb`
+vẫn chạy được dù Outline chưa dừng. Lần thử khi viết README: bỏ bước 1, restore vẫn chạy xong không báo lỗi,
+trong khi log Outline có `database "outline" does not exist`; worker của Outline có thể ghi vào database đang
+restore dở. Lỗi `database "outline" is being accessed by other users` chỉ hiện nếu đúng lúc đó Outline đang
+giữ kết nối.
 
 **Sang máy mới:**
 
@@ -756,8 +785,9 @@ thoảng thử restore để chắc bản backup dùng được.
 
 ### 10.5 Xuất dữ liệu ngay trong Outline
 
-**Settings → Export → Export data**: chọn định dạng (Markdown, HTML hoặc JSON), có thể chọn **Include
-attachments**. Xuất xong Outline gửi email (xem trong Mailpit) và hiện link tải trong trang Export.
+**Settings → Export → Export data…**: chọn định dạng (Markdown, Open Knowledge Format, HTML, TextBundle hoặc
+JSON), có thể chọn **Include attachments**. Xuất xong Outline gửi email (xem trong Mailpit) và hiện link tải
+trong trang Export.
 
 - **JSON** giữ đủ cấu trúc để nạp sang một Outline khác: *Settings → Import → JSON*.
 - **Markdown / HTML** để đọc hoặc lưu trữ ngoài Outline.
@@ -787,8 +817,8 @@ Environment configuration is invalid, please check the following:
 | `UTILS_SECRET should not be empty` | Chưa sinh `UTILS_SECRET` | Mục 5.2 |
 | `URL must be a URL address` | `URL` thiếu `http://` hoặc sai cú pháp | `URL=http://localhost:3500` |
 | ``The database does not support SSL connections. Set the `PGSSLMODE` environment variable to `disable` ...`` | Thiếu `PGSSLMODE=disable` | Thêm vào `.env` |
-| `Could not connect to the database. Please check your connection settings.` | Sai host/cổng trong `DATABASE_URL` | Host phải là `postgres`, cổng `5432` |
-| `password authentication failed for user "outline"` | `DATABASE_URL` khác `POSTGRES_PASSWORD`; hoặc volume đã tạo từ trước với mật khẩu cũ (`POSTGRES_*` chỉ có tác dụng lần đầu) | Sửa cho khớp. Chưa có dữ liệu cần giữ thì `docker compose down -v` rồi chạy lại |
+| `Failed to connect to database`, kèm `getaddrinfo ENOTFOUND <host>` hoặc `connect ECONNREFUSED <ip>:<cổng>` | Sai host (`ENOTFOUND`) hoặc sai cổng (`ECONNREFUSED`) trong `DATABASE_URL` | Host phải là `postgres`, cổng `5432` |
+| `Failed to connect to database`, kèm `password authentication failed for user "outline"` | `DATABASE_URL` khác `POSTGRES_PASSWORD`; hoặc volume đã tạo từ trước với mật khẩu cũ (`POSTGRES_*` chỉ có tác dụng lần đầu) | Sửa cho khớp. Chưa có dữ liệu cần giữ thì `docker compose down -v` rồi chạy lại |
 
 Chưa tạo `.env` (hoặc thiếu `POSTGRES_PASSWORD`) thì chính `docker compose` báo lỗi trước khi chạy gì:
 
@@ -796,10 +826,12 @@ Chưa tạo `.env` (hoặc thiếu `POSTGRES_PASSWORD`) thì chính `docker comp
 error while interpolating services.postgres.environment.POSTGRES_PASSWORD: required variable POSTGRES_PASSWORD is missing a value: Chưa đặt POSTGRES_PASSWORD trong .env
 ```
 
-### 11.2 Trình duyệt bị chuyển sang `https://localhost:3500`
+### 11.2 Trình duyệt bị chuyển sang `https://localhost/`
 
-`FORCE_HTTPS` đang là `true` (mặc định của Outline) trong khi chạy http. Đặt `FORCE_HTTPS=false`, chạy
-`docker compose up -d`. Trình duyệt đã nhớ lần chuyển hướng cũ thì thử cửa sổ ẩn danh hoặc xoá cache.
+`FORCE_HTTPS` đang là `true` (mặc định của Outline) trong khi chạy http: Outline trả `301` sang `https://`
+cùng tên máy nhưng **mất luôn cổng**, nên trình duyệt báo không kết nối được. Đặt `FORCE_HTTPS=false`, chạy
+`docker compose up -d`. `301` là chuyển hướng vĩnh viễn, trình duyệt nhớ lại: thử cửa sổ ẩn danh hoặc xoá
+cache.
 
 ### 11.3 Không có nút "Continue with Dex", hoặc hiện form "Create workspace"
 
@@ -813,8 +845,8 @@ Cấu hình OIDC thủ công cần **đủ 5 biến**: `OIDC_CLIENT_ID`, `OIDC_C
 | Thông báo | Nguyên nhân | Sửa |
 |---|---|---|
 | `Unregistered redirect_uri.` | `URL`/cổng của Outline không khớp `redirectURIs` trong `dex/config.yaml` | Sửa cho khớp, `docker compose restart dex` |
-| `Invalid client_id.` | `OIDC_CLIENT_ID` khác `staticClients[].id` | Sửa cho khớp |
-| Báo sai email/mật khẩu | Gõ sai, hoặc hash bcrypt tự tạo bị lỗi | Tài khoản mẫu: `admin@example.com` / `password` |
+| `Invalid client_id provided.` | `OIDC_CLIENT_ID` khác `staticClients[].id` | Sửa cho khớp |
+| `Invalid Email Address and password.` | Gõ sai, hoặc hash bcrypt tự tạo bị lỗi | Tài khoản mẫu: `admin@example.com` / `password` |
 
 `docker compose logs dex` cho biết chi tiết, ví dụ dòng `unregistered redirect_uri` kèm `redirect_uri` thật
 mà Outline đã gửi.

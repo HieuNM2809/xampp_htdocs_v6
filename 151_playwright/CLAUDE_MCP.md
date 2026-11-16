@@ -8,6 +8,11 @@ Kiểm chứng với **Claude Code 2.1.318**, **@playwright/mcp 0.0.85**, Google
 tool và tuỳ chọn bên dưới lấy từ chính server bản 0.0.85 (`tools/list`, `--help`). Các kết quả mẫu trong mục 5
 lấy từ một phiên gọi tool thật vào web app mẫu của thư mục này.
 
+Chạy lại trên Windows 11 với Claude Code 2.1.325, @playwright/mcp 0.0.85, Chrome 157, cũng bằng cách gọi thẳng
+server ở chế độ headless: danh sách tool, tuỳ chọn, file cấu hình ở mục 3.2 và kết quả ở mục 5 đều giống, chỉ khác
+đường dẫn file dùng `\` (ví dụ `.playwright-mcp\page-....yml`). Claude Code chạy được server khai báo
+`"command": "npx"` mà không cần sửa gì (nó tự gọi qua `cmd.exe /d /s /c`).
+
 ```
   bạn: "mở trang Sản phẩm, tìm 'kem', thêm vào giỏ"
     │
@@ -98,7 +103,8 @@ Lựa chọn được lưu vào `.claude/settings.local.json` (`enabledMcpjsonSe
 `claude mcp reset-project-choices`.
 
 > Nếu máy đã có server tên `playwright` ở scope user (thêm bằng `claude mcp add --scope user ...`), thì trong thư
-> mục này bản trong `.mcp.json` được dùng vì project ưu tiên hơn user. Từ chối `.mcp.json` thì Claude dùng lại bản user.
+> mục này, sau khi bạn đồng ý, bản trong `.mcp.json` được dùng vì project ưu tiên hơn user. Chưa đồng ý hoặc đã từ
+> chối thì Claude dùng bản user. `claude mcp get playwright` cho biết bản nào đang được dùng.
 
 ### 2.2. Cách 2: thêm bằng `claude mcp add`
 
@@ -595,7 +601,7 @@ trang liên tục, như khám phá ứng dụng hay tự sửa test.
 | Cảnh báo kết quả tool quá dài, tốn token | Trang lớn, snapshot dài | Dùng `browser_find`, `depth` của snapshot, hoặc tăng `MAX_MCP_OUTPUT_TOKENS` (mặc định 25000) |
 | Claude chụp ảnh liên tục thay vì đọc snapshot | Prompt nhắc tới "nhìn", "xem giao diện" | Nói rõ "đọc snapshot", hoặc thêm `--image-responses omit` |
 | `claude mcp list` cảnh báo trùng tên server | Tên `playwright` khai báo ở nhiều scope với lệnh khác nhau | Bình thường nếu cố ý (local > project > user). Không cố ý thì `claude mcp remove playwright --scope <scope>` |
-| Windows: `spawn npx ENOENT` hoặc server không khởi động | Một số môi trường Windows không chạy thẳng được `npx` | Đổi thành `"command": "cmd", "args": ["/c", "npx", "@playwright/mcp@latest", "--isolated"]` |
+| Windows: `spawn npx ENOENT` hoặc server không khởi động | Một số môi trường Windows không chạy thẳng được `npx`. Claude Code 2.1.325 trên Windows 11 tự gọi `npx` qua `cmd.exe` nên không gặp lỗi này | Đổi thành `"command": "cmd", "args": ["/c", "npx", "@playwright/mcp@latest", "--isolated"]` |
 | Chạy `init-agents` xong mất server `playwright` | Lệnh ghi đè `.mcp.json` | Gộp lại hai server bằng tay (mục 9.1) |
 
 ---

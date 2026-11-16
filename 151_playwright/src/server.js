@@ -58,6 +58,15 @@ async function readJson(req) {
   }
 }
 
+// URL hỏng (ví dụ "//[") làm new URL ném lỗi: trả 400 thay vì để lỗi làm sập cả server
+function parseUrl(rawUrl) {
+  try {
+    return new URL(rawUrl, 'http://localhost');
+  } catch {
+    throw httpError(400, 'Đường dẫn không hợp lệ');
+  }
+}
+
 // GET /api/products?q=kem&category=Dưỡng da
 async function listProducts(url) {
   await sleep(API_DELAY_MS);
@@ -142,8 +151,8 @@ async function serveStatic(pathname, res) {
 }
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, 'http://localhost');
   try {
+    const url = parseUrl(req.url);
     const route = API_ROUTES[`${req.method} ${url.pathname}`];
     if (route) {
       const [status, body] = await route(req, url);

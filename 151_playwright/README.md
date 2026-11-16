@@ -26,6 +26,7 @@ website bên ngoài, chạy được khi không có mạng và cho cùng kết q
 
 Kiểm chứng trên Ubuntu 26.04 với Node.js 22.22, @playwright/test 1.65.1, @playwright/mcp 0.0.85, Claude Code 2.1.318.
 Phần 2 được chạy lại trên Windows 11 với Node.js 22.11, kết quả ở [mục 10](#10-output-mẫu).
+Phần 1 được kiểm tra lại trên Windows 11 với Claude Code 2.1.325 và Chrome 157 (xem đầu [`CLAUDE_MCP.md`](CLAUDE_MCP.md)).
 
 ---
 
@@ -242,10 +243,12 @@ thuộc hệ điều hành, font và trình duyệt của từng máy (tên file
 `home-chromium-win32.png` trên Windows).
 
 ```bash
-npm run test:visual           # lần đầu: fail với "A snapshot doesn't exist ..., writing actual." là bình thường
-npm run test:visual:update    # tạo ảnh chuẩn trong tests/04-screenshot.spec.ts-snapshots/
+npm run test:visual:update    # lần đầu: tạo ảnh chuẩn trong tests/04-screenshot.spec.ts-snapshots/
 npm run test:visual           # các lần sau: so từng pixel với ảnh chuẩn
 ```
+
+Chạy thẳng `npm run test:visual` khi chưa có ảnh chuẩn thì test fail với `A snapshot doesn't exist ..., writing actual.`,
+nhưng Playwright đã ghi luôn ảnh vừa chụp làm ảnh chuẩn nên chạy lại là pass.
 
 Ảnh chuẩn nằm trong `.gitignore`. Dự án thật thường tạo ảnh chuẩn trong Docker
 (`mcr.microsoft.com/playwright:v1.65.1-noble`) hoặc trên CI để cả team dùng chung, rồi mới commit.
@@ -439,7 +442,7 @@ Kết quả trên hai máy kiểm chứng (`—`: chưa chạy trên máy đó):
 | Cổng 3151 đã bị chiếm | Ứng dụng khác dùng cổng này. Test có thể chạy nhầm vào ứng dụng đó vì `reuseExistingServer` | Đổi cổng: `PORT=3152 npm test` (bash) hoặc `$env:PORT=3152; npm test` (PowerShell) |
 | `npm run serve` báo `Cổng 3151 đang bị chiếm` | Như trên | Như trên |
 | `strict mode violation: ... resolved to 2 elements` | Locator khớp nhiều phần tử | Thu hẹp phạm vi (`menu.getByRole(...)`), thêm role, `{ exact: true }` hoặc `.filter()` |
-| `A snapshot doesn't exist at ..., writing actual.` | Chạy `test:visual` khi chưa có ảnh chuẩn | `npm run test:visual:update` |
+| `A snapshot doesn't exist at ..., writing actual.` | Chạy `test:visual` khi chưa có ảnh chuẩn | Không cần sửa: ảnh vừa chụp đã thành ảnh chuẩn, chạy lại là pass. Muốn tạo ảnh chuẩn mà không bị fail: `npm run test:visual:update` |
 | Visual test fail trên máy khác dù giao diện không đổi | Hệ điều hành, font khác nên pixel khác | Mỗi máy tự tạo ảnh chuẩn, hoặc cùng chạy trong Docker image `mcr.microsoft.com/playwright:v1.65.1-noble` |
 | Test treo ở bước click mở hộp thoại | Có listener `dialog` nhưng không gọi `accept()` / `dismiss()` | Listener nào cũng phải xử lý dialog (xem `05-e2e-checkout.spec.ts`) |
 | Sai kiểu TypeScript mà test vẫn chạy | Playwright chỉ bỏ phần kiểu đi, không kiểm tra | `npm run typecheck` |
