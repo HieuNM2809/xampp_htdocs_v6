@@ -25,6 +25,7 @@ website bên ngoài, chạy được khi không có mạng và cho cùng kết q
 ```
 
 Kiểm chứng trên Ubuntu 26.04 với Node.js 22.22, @playwright/test 1.65.1, @playwright/mcp 0.0.85, Claude Code 2.1.318.
+Phần 2 được chạy lại trên Windows 11 với Node.js 22.11, kết quả ở [mục 10](#10-output-mẫu).
 
 ---
 
@@ -71,17 +72,18 @@ npm install                 # @playwright/test, typescript, @types/node
 npx playwright install      # trình duyệt cho cả 3 project trong playwright.config.ts
 ```
 
-| Lệnh | Tải gì | Dung lượng sau khi giải nén (Linux) |
+| Lệnh | Tải gì | Dung lượng sau khi giải nén |
 |---|---|---|
-| `npx playwright install` | Chromium, Chromium headless shell, Firefox, WebKit, ffmpeg | khoảng 1,3 GB |
-| `npx playwright install chromium` | Chromium và headless shell, đủ cho `npm test` | khoảng 700 MB |
+| `npx playwright install` | Chromium, Chromium headless shell, Firefox, WebKit, ffmpeg | khoảng 1,3 GB (Linux và Windows) |
+| `npx playwright install chromium` | Chromium và headless shell, đủ cho `npm test` | khoảng 700 MB (Linux), 740 MB (Windows) |
 | `npx playwright install --with-deps` | Như dòng đầu, kèm thư viện hệ thống (Linux, cần sudo) | |
 
 Trình duyệt được lưu dùng chung cho mọi project: `~/.cache/ms-playwright` (Linux),
 `%USERPROFILE%\AppData\Local\ms-playwright` (Windows), `~/Library/Caches/ms-playwright` (macOS). Mỗi bản
 `@playwright/test` cần đúng một phiên bản trình duyệt, nên nâng cấp package xong thì chạy lại `npx playwright install`.
+Khi cài, Playwright cũng tự xoá bản trình duyệt cũ không còn dùng (thông báo `Removing unused browser at ...`).
 
-Trên Linux, Firefox và WebKit có thể cần thêm thư viện hệ thống. Nếu gặp `Host system is missing dependencies to run browsers`:
+Trên Linux, Firefox và WebKit có thể cần thêm thư viện hệ thống (máy Windows 11 dùng để kiểm chứng không phải cài thêm gì). Nếu gặp `Host system is missing dependencies to run browsers`:
 
 ```bash
 sudo npx playwright install-deps
@@ -236,7 +238,8 @@ File có chú thích một lỗi tinh vi: tìm "kem" ra 2 kết quả, đổi sa
 | Tự chụp khi test lỗi | `screenshot: 'only-on-failure'` trong `playwright.config.ts` |
 
 So sánh hình ảnh (visual regression) được gắn tag `@visual` và **không** chạy trong `npm test`. Lý do: ảnh chuẩn phụ
-thuộc hệ điều hành, font và trình duyệt của từng máy (tên file có hậu tố, ví dụ `home-chromium-linux.png`).
+thuộc hệ điều hành, font và trình duyệt của từng máy (tên file có hậu tố, ví dụ `home-chromium-linux.png` trên Linux,
+`home-chromium-win32.png` trên Windows).
 
 ```bash
 npm run test:visual           # lần đầu: fail với "A snapshot doesn't exist ..., writing actual." là bình thường
@@ -338,7 +341,8 @@ cho Claude phân tích (xem mục 6 trong `CLAUDE_MCP.md`).
 | `npm run codegen` | Ghi thao tác thành code |
 | `npm run typecheck` | Kiểm tra kiểu TypeScript (`tsc --noEmit`) |
 
-`npm test` chỉ chạy Chromium cho nhanh và nhẹ máy. Chạy một trình duyệt khác: `npx playwright test --project=firefox`.
+`npm test` chỉ chạy Chromium cho nhanh và nhẹ máy. Chạy một trình duyệt khác: `npx playwright test --project=firefox --grep-invert @visual`
+(bỏ `--grep-invert @visual` thì 2 test so sánh hình ảnh fail vì chưa có ảnh chuẩn cho trình duyệt đó).
 Truyền thêm tham số cho script npm thì đặt sau `--`, ví dụ `npm test -- --repeat-each=5` để chạy lặp và tìm test chập chờn.
 
 ---
@@ -382,33 +386,45 @@ Các thư mục sinh ra khi chạy đều đã có trong `.gitignore`: `test-res
 
 ## 10. Output mẫu
 
-`npm test`:
+`npm test` trên Windows 11, output thật của lần chạy kiểm chứng (bớt một số dòng):
 
 ```
-Running 23 tests using 4 workers
+> playwright-claude-example@1.0.0 test
+> playwright test --project=chromium --grep-invert @visual
 
-  ✓   1 [chromium] › tests/01-title.spec.ts:11:3 › Trang chủ › có tiêu đề đúng (961ms)
-  ✓   4 [chromium] › tests/01-title.spec.ts:36:1 › đường dẫn không tồn tại trả về trang 404 (842ms)
-  ✓   5 [chromium] › tests/02-form.spec.ts:10:3 › Form liên hệ › gửi thành công khi điền đủ thông tin (2.2s)
-  ✓  12 [chromium] › tests/03-locators-waiting.spec.ts:41:3 › Danh sách sản phẩm › tìm kiếm có debounce: kiểm tra nội dung mới, kể cả khi gõ không dấu (2.9s)
-  ✓  15 [chromium] › tests/03-locators-waiting.spec.ts:85:3 › Giả lập API bằng page.route › API lỗi: hiện thông báo, bấm "Thử lại" thì tải được (1.3s)
-  ✓  17 [chromium] › tests/04-screenshot.spec.ts:14:1 › chụp toàn trang (fullPage) (1.3s)
-  ✓  22 [chromium] › tests/05-e2e-checkout.spec.ts:86:1 › xoá sản phẩm phải xác nhận qua hộp thoại (1.8s)
-  ✓  21 [chromium] › tests/05-e2e-checkout.spec.ts:12:1 › khách mua hàng từ đầu đến cuối (3.5s)
+
+Running 23 tests using 12 workers
+
+  ok  1 [chromium] › tests\01-title.spec.ts:36:1 › đường dẫn không tồn tại trả về trang 404 (1.6s)
+  ok  6 [chromium] › tests\01-title.spec.ts:11:3 › Trang chủ › có tiêu đề đúng (1.6s)
+  ok  3 [chromium] › tests\02-form.spec.ts:35:3 › Form liên hệ › báo lỗi khi bỏ trống các trường bắt buộc (1.8s)
+  ok 16 [chromium] › tests\03-locators-waiting.spec.ts:101:3 › Giả lập API bằng page.route › trả dữ liệu giả để kiểm tra giao diện với dữ liệu tuỳ ý (310ms)
+  ok 19 [chromium] › tests\04-screenshot.spec.ts:28:1 › che vùng thay đổi mỗi lần tải bằng mask (327ms)
+  ok  8 [chromium] › tests\02-form.spec.ts:10:3 › Form liên hệ › gửi thành công khi điền đủ thông tin (2.8s)
+  ok 15 [chromium] › tests\03-locators-waiting.spec.ts:85:3 › Giả lập API bằng page.route › API lỗi: hiện thông báo, bấm "Thử lại" thì tải được (1.3s)
+  ok 22 [chromium] › tests\05-e2e-checkout.spec.ts:86:1 › xoá sản phẩm phải xác nhận qua hộp thoại (1.2s)
+  ok 10 [chromium] › tests\03-locators-waiting.spec.ts:41:3 › Danh sách sản phẩm › tìm kiếm có debounce: kiểm tra nội dung mới, kể cả khi gõ không dấu (4.1s)
+  ok 21 [chromium] › tests\05-e2e-checkout.spec.ts:12:1 › khách mua hàng từ đầu đến cuối (2.7s)
   …
 
-  23 passed (12.1s)
+  23 passed (7.4s)
 ```
 
-Kết quả trên máy kiểm chứng:
+- Test chạy song song nên thứ tự dòng mỗi lần một khác. Số worker mặc định bằng 50% số luồng CPU (máy 24 luồng chạy 12 worker).
+- Trên Windows, Playwright in `ok` / `x` thay cho `✓` / `✘` nếu terminal không phải Windows Terminal hay terminal của VS Code.
+  Linux và macOS luôn in `✓` và đường dẫn dùng `/`.
 
-| Lệnh | Kết quả |
-|---|---|
-| `npm test` (Chromium, 4 worker) | 23/23 pass, 12 giây |
-| `npx playwright test --project=firefox --workers=1` | 23/23 pass, 2,5 phút (máy đang tải nặng lúc chạy) |
-| `npx playwright test --project=webkit` | Không chạy được: máy thiếu thư viện hệ thống (mục 11) |
-| `npm run test:visual:update` rồi `npm run test:visual` | 2/2 pass |
-| `npm run typecheck` | Không có lỗi |
+Kết quả trên hai máy kiểm chứng (`—`: chưa chạy trên máy đó):
+
+| Lệnh | Ubuntu 26.04 | Windows 11 (24 luồng CPU, 32 GB RAM) |
+|---|---|---|
+| `npm run typecheck` | Không có lỗi | Không có lỗi |
+| `npm test` (Chromium) | 23/23 pass, 12 giây, 4 worker | 23/23 pass, 7,4 giây, 12 worker |
+| `npm run test:01` ... `test:05` | — | 4 + 4 + 8 + 4 + 3 = 23 pass |
+| `npx playwright test --project=firefox --grep-invert @visual` | 23/23 pass với `--workers=1`, 2,5 phút (máy đang tải nặng lúc chạy) | 23/23 pass, 12 giây |
+| `npx playwright test --project=webkit --grep-invert @visual` | Không chạy được: máy thiếu thư viện hệ thống (mục 11) | 23/23 pass, 8,7 giây |
+| `npm run test:all-browsers` (69 test) | — | Lần 1: 58/69, 11 test WebKit lỗi, log có `Fatal process out of memory`, nhiều khả năng do máy thiếu bộ nhớ vì đang mở nhiều ứng dụng khác (mục 11). Lần 2: 69/69, 25,6 giây |
+| `npm run test:visual:update` rồi `npm run test:visual` | 2/2 pass | 2/2 pass |
 
 ---
 
@@ -418,7 +434,8 @@ Kết quả trên máy kiểm chứng:
 |---|---|---|
 | `Executable doesn't exist at .../ms-playwright/chromium-1255/...` | Chưa tải trình duyệt, hoặc vừa nâng cấp `@playwright/test` | `npx playwright install` (hoặc `npx playwright install chromium`) |
 | `Host system is missing dependencies to run browsers` | Linux thiếu thư viện, hay gặp với WebKit | `sudo npx playwright install-deps`, hoặc `sudo apt-get install` đúng các gói trong thông báo |
-| Firefox / WebKit báo `Test timeout of 30000ms exceeded while running "beforeEach" hook` dù trang đã hiện đủ | Máy quá tải (nhiều trình duyệt chạy song song, ít RAM), sự kiện `load` đến quá muộn | Chạy ít worker hơn: `npx playwright test --project=firefox --workers=1`, đóng bớt ứng dụng nặng |
+| Firefox / WebKit báo `Test timeout of 30000ms exceeded while running "beforeEach" hook` dù trang đã hiện đủ | Máy quá tải (nhiều trình duyệt chạy song song, ít RAM), sự kiện `load` đến quá muộn | Chạy ít worker hơn: `npx playwright test --project=firefox --grep-invert @visual --workers=1`, đóng bớt ứng dụng nặng |
+| `Fatal process out of memory`, `Page crashed`, `Target crashed`, `worker process exited unexpectedly` hoặc `[skia] ... tryAllocPixels` khi chạy `npm run test:all-browsers` | Nhiều khả năng máy thiếu bộ nhớ: ứng dụng khác đã chiếm nhiều RAM, cộng thêm 3 trình duyệt chạy song song (số worker mặc định bằng 50% số luồng CPU) | Chạy lại, giảm worker (`npm run test:all-browsers -- --workers=4`) hoặc chạy từng trình duyệt, đóng bớt ứng dụng nặng |
 | Cổng 3151 đã bị chiếm | Ứng dụng khác dùng cổng này. Test có thể chạy nhầm vào ứng dụng đó vì `reuseExistingServer` | Đổi cổng: `PORT=3152 npm test` (bash) hoặc `$env:PORT=3152; npm test` (PowerShell) |
 | `npm run serve` báo `Cổng 3151 đang bị chiếm` | Như trên | Như trên |
 | `strict mode violation: ... resolved to 2 elements` | Locator khớp nhiều phần tử | Thu hẹp phạm vi (`menu.getByRole(...)`), thêm role, `{ exact: true }` hoặc `.filter()` |

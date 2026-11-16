@@ -1,0 +1,125 @@
+# Outline — wiki/knowledge base tự host, chạy bằng Docker Compose.
+#
+# Năm service chung một network riêng của project, gọi nhau bằng TÊN service (DNS nội bộ của Docker):
+#
+#   outline    ứng dụng Outline (Node.js): giao diện web + API + WebSocket, nghe cổng 3000 trong container
+#   postgres   PostgreSQL 18: tài liệu, collection, user, phân quyền, lịch sử chỉnh sửa
+#   redis      Redis 8: hàng đợi job (gửi email, xuất dữ liệu...), cache, đồng bộ realtime
+#   dex        OpenID Connect provider có sẵn 2 tài khoản thử (dex/config.yaml): đăng nhập ngay trên máy
+#   mailpit    SMTP "giả": giữ lại mọi email Outline gửi (lời mời, link đăng nhập), xem trên trình duyệt
+#
+# dex và mailpit chỉ để chạy thử; production thay bằng SSO và SMTP thật (README mục 13).
+# Mọi cấu hình nằm trong .env (copy từ .env.example, phải tự sinh SECRET_KEY và UTILS_SECRET).
+#
+#   docker compose up -d               tải image rồi chạy; lần đầu Outline tự tạo bảng (migration)
+#   docker compose ps                  xem trạng thái, chờ outline/postgres/redis hiện (healthy)
+#   docker compose logs -f outline     xem log của Outline (Ctrl+C để thoát, container vẫn chạy)
+#   docker compose stop                dừng, giữ nguyên container và dữ liệu
+#   docker compose down                xoá container, GIỮ dữ liệu trong các volume
+#   docker compose down -v             xoá container VÀ volume: mất hết tài liệu, user, file đính kèm
+name: outline-wiki
+
+services:
+  outline:
+    image: docker.getoutline.com/outlinewiki/outline:${OUTLINE_VERSION:-1.13.0}
+    restart: unless-stopped
+    # Nạp TOÀN BỘ .env làm biến môi trường của Outline: URL, khoá bí mật, DATABASE_URL, REDIS_URL,
+    # cách đăng nhập (OIDC_*, GOOGLE_*...), SMTP_*...
+    env_file: .env
+    ports:
+      # <cổng máy host>:<cổng trong container>. Trong container Outline luôn nghe 3000 (PORT trong .env).
+      # Đổi cổng phía host thì sửa OUTLINE_PORT, URL trong .env VÀ redirectURIs trong dex/config.yaml.
+      - "${OUTLINE_PORT:-3500}:3000"
+    volumes:
+      # File đính kèm, ảnh, avatar (FILE_STORAGE=local). Volume có tên: lần tạo đầu Docker chép sẵn quyền
+      # của thư mục này trong image (user nodejs, uid 1001), nên Outline ghi được mà không phải chown.
+      - outline-data:/var/lib/outline/data
+    depends_on:
+      postgres:
+        condition: service_healthy # Outline chạy migration ngay lúc khởi động, DB phải sẵn sàng trước
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # /_health trả "OK" khi Outline truy vấn được PostgreSQL (SELECT 1) và ping được Redis.
+      # Image có sẵn healthcheck này nhưng 1 phút mới chạy một lần; ở đây rút xuống 15 giây.
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/_health | grep -q OK || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s # lần đầu còn chạy migration, lỗi trong khoảng này chưa bị tính
+    # Muốn TỰ chạy migration (README mục 7.3) thì bỏ comment dòng dưới: Outline không tự migrate nữa,
+    # và từ chối khởi động nếu còn migration chưa chạy.
+    # command: ["node", "build/server/index.js", "--no-migrate"]
+
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      # Chỉ có tác dụng ở LẦN CHẠY ĐẦU (volume còn trống): tạo user + database. Phải khớp DATABASE_URL.
+      POSTGRES_USER: ${POSTGRES_USER:-outline}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Chưa đặt POSTGRES_PASSWORD trong .env}
+      POSTGRES_DB: ${POSTGRES_DB:-outline}
+    volumes:
+      # Từ PostgreSQL 18, image chính thức để dữ liệu ở /var/lib/postgresql/18/docker và khai báo volume
+      # tại /var/lib/postgresql. Đừng gắn vào /var/lib/postgresql/data như các hướng dẫn cho bản <= 17.
+      - postgres-data:/var/lib/postgresql
+      # Thư mục backups/ cạnh file này: pg_dump ghi file backup thẳng ra máy host (README mục 10).
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Không mở cổng ra máy host: chỉ Outline (chung network) cần kết nối. Muốn xem DB bằng DBeaver/psql
+    # trên máy thì bỏ comment (chỉ nghe 127.0.0.1; cổng 5433 để không đụng PostgreSQL cài sẵn trên máy):
+    # ports:
+    #   - "127.0.0.1:5433:5432"
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    # appendonly: ghi mọi thay đổi xuống đĩa (volume redis-data), restart không làm mất job còn trong
+    # hàng đợi, ví dụ email chưa kịp gửi.
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Muốn xem bằng redis-cli / RedisInsight trên máy thì bỏ comment:
+    # ports:
+    #   - "127.0.0.1:6380:6379"
+
+  dex:
+    image: ghcr.io/dexidp/dex:v2.46.1
+    restart: unless-stopped
+    command: ["dex", "serve", "/etc/dex/config.yaml"]
+    ports:
+      # PHẢI mở ra máy host: chính TRÌNH DUYỆT được Outline chuyển sang trang đăng nhập của Dex ở cổng này.
+      # Đổi DEX_PORT thì sửa issuer trong dex/config.yaml và OIDC_AUTH_URI trong .env.
+      - "${DEX_PORT:-5556}:5556"
+    volumes:
+      - ./dex/config.yaml:/etc/dex/config.yaml:ro
+
+  mailpit:
+    image: axllent/mailpit:v1.33.1
+    restart: unless-stopped
+    ports:
+      # Giao diện web xem email. Cổng SMTP 1025 KHÔNG cần mở: Outline gửi tới mailpit:1025 trong network.
+      - "${MAILPIT_PORT:-8025}:8025"
+
+  # Tiện ích backup/restore file đính kèm (volume outline-data <-> thư mục backups/). Thuộc profile "tools"
+  # nên "docker compose up" bỏ qua; chỉ chạy khi gọi tên:  docker compose run --rm backup ...  (README mục 10)
+  backup:
+    image: alpine:3.24
+    profiles: ["tools"]
+    volumes:
+      - outline-data:/data
+      - ./backups:/backups
+
+volumes:
+  outline-data: # file đính kèm của Outline
+  postgres-data: # dữ liệu PostgreSQL
+  redis-data: # dữ liệu Redis (AOF)

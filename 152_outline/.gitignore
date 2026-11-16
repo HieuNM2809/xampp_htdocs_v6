@@ -1,0 +1,6 @@
+# Chứa khoá bí mật và mật khẩu: không commit
+.env
+
+# File backup sinh ra khi làm theo README mục 10 (giữ lại thư mục rỗng nhờ .gitkeep)
+/backups/*
+!/backups/.gitkeep

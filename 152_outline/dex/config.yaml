@@ -1,0 +1,62 @@
+# Dex — OpenID Connect provider gọn nhẹ, CHỈ dùng để chạy thử Outline trên máy.
+#
+# Outline không có kiểu đăng nhập user/mật khẩu riêng, luôn cần một nhà cung cấp đăng nhập (SSO). Ở đây Dex
+# đóng vai "SSO của công ty" với 2 tài khoản khai báo sẵn. Production: thay bằng IdP thật (Google Workspace,
+# Microsoft Entra ID, Keycloak, Authentik...), xem README mục 5.4.
+#
+# Sửa file này xong: docker compose restart dex
+#
+# Thêm tài khoản: chép một mục trong staticPasswords, đổi email / username / name / userID (userID là chuỗi
+# bất kỳ, không trùng), rồi tạo hash bcrypt cho mật khẩu mới:
+#   docker run --rm httpd:2.4-alpine htpasswd -nbBC 10 x "mat-khau-moi"
+# Lệnh in ra "x:$2y$10$...": phần SAU "x:" là hash.
+
+# URL gốc của Dex mà TRÌNH DUYỆT nhìn thấy. Phải khớp OIDC_AUTH_URI trong .env (http://localhost:5556/dex/auth).
+# Outline (trong container) gọi token/userinfo qua http://dex:5556/dex/...: khác host nhưng vẫn chạy, vì Outline
+# chỉ đọc nội dung id_token chứ không đối chiếu issuer.
+issuer: http://localhost:5556/dex
+
+# Trạng thái đăng nhập (mã code, token) giữ trong RAM: restart Dex thì mất, không sao vì client và tài khoản
+# đều khai báo tĩnh trong file này.
+storage:
+  type: memory
+
+web:
+  # 0.0.0.0: nhận kết nối từ máy host (qua cổng đã map) lẫn từ container outline (http://dex:5556).
+  http: 0.0.0.0:5556
+
+oauth2:
+  # Bỏ màn hình "Grant Access" hỏi lại sau khi nhập mật khẩu.
+  skipApprovalScreen: true
+
+staticClients:
+  - id: outline # = OIDC_CLIENT_ID trong .env
+    secret: outline-dex-secret # = OIDC_CLIENT_SECRET trong .env
+    name: Outline
+    redirectURIs:
+      # = URL trong .env + "/auth/oidc.callback". Đổi OUTLINE_PORT / URL thì sửa dòng này theo.
+      - http://localhost:3500/auth/oidc.callback
+
+# Bật kho tài khoản user/mật khẩu của chính Dex.
+enablePasswordDB: true
+
+staticPasswords:
+  # Người đăng nhập Outline ĐẦU TIÊN trở thành Admin của workspace: đăng nhập bằng tài khoản này trước.
+  - email: admin@example.com
+    # bcrypt của chuỗi "password" (giá trị mẫu trong cấu hình chính thức của Dex)
+    hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+    username: admin
+    name: Admin Demo # tên hiển thị trong Outline (claim "name")
+    preferredUsername: admin
+    # Outline chỉ ghép tài khoản SSO với lời mời / tên miền cho phép khi email "đã xác minh".
+    emailVerified: true
+    userID: 08a8684b-db88-4b73-90a9-3cd1661f5466
+
+  # Tài khoản thứ hai để thử mời thành viên (README mục 9.3). Mật khẩu cũng là "password".
+  - email: member@example.com
+    hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+    username: member
+    name: Member Demo
+    preferredUsername: member
+    emailVerified: true
+    userID: 5b0f7c2e-4a91-4d3b-8e6a-1f2c9d7e3a40
