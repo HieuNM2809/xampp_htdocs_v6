@@ -158,6 +158,7 @@ Ba điểm đáng nhớ:
 ```
 152_outline/
 ├── README.md               hướng dẫn: cấu hình, chạy, migration, sử dụng, backup/restore, xử lý sự cố
+├── CLAUDE_MCP.md           kết nối Claude (Claude Code, Desktop, claude.ai, API) với MCP server có sẵn của Outline
 ├── docker-compose.yml      outline + postgres + redis + dex + mailpit, kèm service "backup" chạy theo yêu cầu
 ├── .env.example            mẫu biến môi trường (có chú thích), copy thành .env
 ├── .gitignore              bỏ qua .env và các file trong backups/
@@ -1001,6 +1002,7 @@ docker image rm docker.getoutline.com/outlinewiki/outline:1.13.0 postgres:18 red
   - SMTP: https://docs.getoutline.com/s/hosting/doc/smtp-cqCJyZGMIB
   - File storage: https://docs.getoutline.com/s/hosting/doc/file-storage-N4M0T6Ypu7
   - Backups: https://docs.getoutline.com/s/hosting/doc/backups-KZtPOADCHG
+- Kết nối Claude với Outline qua MCP (Claude Code, Claude Desktop, claude.ai, Claude API): [CLAUDE_MCP.md](CLAUDE_MCP.md)
 - Outline, toàn bộ biến môi trường: https://github.com/outline/outline/blob/main/.env.sample
 - Outline, các bản phát hành: https://github.com/outline/outline/releases
 - Dex: https://dexidp.io/docs/, cấu hình mẫu có `staticPasswords`:
