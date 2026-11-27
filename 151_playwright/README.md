@@ -8,6 +8,9 @@ Thư mục gồm hai phần, dùng chung một web app mẫu chạy trên máy b
 2. **Code Playwright**: 5 ví dụ `@playwright/test` viết bằng TypeScript, chạy được ngay: kiểm tra tiêu đề, form,
    locator và chờ element, screenshot, một kịch bản end-to-end.
 
+Tra cứu nhanh các action và property hay dùng khi viết test (click, fill, toHaveText, toBeVisible...):
+[`PLAYWRIGHT_API.md`](PLAYWRIGHT_API.md).
+
 Web app mẫu "Mini Shop" (`src/`) là một cửa hàng giả lập, không cần cài thêm gì. Nhờ vậy test không phụ thuộc
 website bên ngoài, chạy được khi không có mạng và cho cùng kết quả mỗi lần chạy.
 
@@ -356,6 +359,7 @@ Truyền thêm tham số cho script npm thì đặt sau `--`, ví dụ `npm test
 151_playwright/
 ├── README.md                          bạn đang đọc
 ├── CLAUDE_MCP.md                      Phần 1: Playwright MCP + Claude Code, prompt mẫu
+├── PLAYWRIGHT_API.md                  Tra cứu action/property của Locator, Page và assertions
 ├── .mcp.json                          khai báo Playwright MCP cho Claude Code (scope project)
 ├── examples/
 │   ├── mcp.headless.json              biến thể .mcp.json chạy ẩn (WSL, SSH, CI)
